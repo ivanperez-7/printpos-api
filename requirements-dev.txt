@@ -1,0 +1,3 @@
+axblack==20220330
+ipython==9.6.0
+pdbp==1.7.1
