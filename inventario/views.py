@@ -35,3 +35,11 @@ class ProductoViewSet(GetWithOrmMixin, ModelViewSet):
             .values('id', 'codigo', 'descripcion_', 'abreviado', 'categoria', 'precio_con_iva', 'precio_sin_iva', 'costo_prod', 'utilidad')
         )
         return Response(data=qs, status=200)
+
+
+class InventarioViewSet(GetWithOrmMixin, ModelViewSet):
+    queryset = Inventario.objects.filter(is_active=True)
+    serializer_class = InventarioSerializer
+    permission_classes = [IsAuthenticated]
+
+    orm_fields = ['id', 'nombre']
