@@ -73,7 +73,7 @@ class ProductoIntervalo(models.Model):
         related_name="intervalos",
         limit_choices_to={'categoria': 'S'}
     )
-    desde = models.FloatField()
+    desde = models.PositiveIntegerField()
     precio_con_iva = models.FloatField()
     duplex = models.BooleanField()
 
