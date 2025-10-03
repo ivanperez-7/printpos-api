@@ -9,6 +9,7 @@ class Cliente(models.Model):
     rfc = models.CharField(max_length=100, blank=True, null=True)
     cliente_especial = models.BooleanField(default=False)
     descuentos = models.TextField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)
 
     class Meta:
         unique_together = ("nombre", "telefono")

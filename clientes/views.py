@@ -11,9 +11,9 @@ from .models import *
 def get_tabla_clientes(request):
     clientes = (
         Cliente.objects
-        .exclude(ventas__estado__in=["Cancelada", "No terminada"])
-        .annotate(ultimaVenta=Max("ventas__fecha_hora_creacion"))
+        .exclude(ventas__estado__in=["Cancelada", "No terminada"], is_active=False)
+        .annotate(ultima_venta=Max("ventas__fecha_hora_creacion"))
         .order_by("id")
-        .values("id", "nombre", "telefono", "correo", "direccion", "rfc", "ultimaVenta")
+        .values("id", "nombre", "telefono", "correo", "direccion", "rfc", "ultima_venta")
     )
     return Response(data=clientes, status=200)
