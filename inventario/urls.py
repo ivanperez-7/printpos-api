@@ -1,8 +1,12 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework import routers
 
 from .views import *
 
 
+router = routers.DefaultRouter()
+router.register('', ProductoViewSet)
+
 urlpatterns = [
-    path('get-tabla-precios-simples/', get_tabla_precios_simples),
+    path('', include(router.urls)),
 ]
