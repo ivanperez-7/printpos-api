@@ -23,6 +23,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/token/', CustomTokenObtainPairView.as_view()),
+    path('api/v1/clientes/', include('clientes.urls')),
     path('api/v1/productos/', include('inventario.urls')),
     path('api/v1/ventas/', include('ventas.urls'))
 ]
