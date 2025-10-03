@@ -62,6 +62,11 @@ class ProductoGranFormato(models.Model):
     class Meta:
         verbose_name = "Producto Gran Formato"
         verbose_name_plural = "Productos Gran Formato"
+    
+    def save(self, *args, **kwargs):
+        if self.producto.categoria == 'S':
+            raise ValueError('El producto es de categoría simple, no gran formato.')
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.producto.descripcion} - Gran Formato"
@@ -82,6 +87,11 @@ class ProductoIntervalo(models.Model):
         verbose_name = "Producto Intervalo"
         verbose_name_plural = "Productos Intervalos"
         unique_together = ("producto", "desde", "duplex")
+
+    def save(self, *args, **kwargs):
+        if self.producto.categoria == 'G':
+            raise ValueError('El producto es de categoría gran formato, no simple.')
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.producto.descripcion} - Desde {self.desde} ({'Dúplex' if self.duplex else 'Simple'})"
