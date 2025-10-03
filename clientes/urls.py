@@ -1,8 +1,12 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework import routers
 
 from .views import *
 
 
+router = routers.DefaultRouter()
+router.register('', ClienteViewSet)
+
 urlpatterns = [
-    path('get-tabla-clientes/', get_tabla_clientes),
+    path('', include(router.urls)),
 ]
