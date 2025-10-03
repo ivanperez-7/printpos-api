@@ -7,6 +7,7 @@ class Inventario(models.Model):
     precio_lote = models.FloatField()
     minimo_lotes = models.FloatField()
     unidades_restantes = models.FloatField()
+    is_active = models.BooleanField(default=True)
 
     class Meta:
         verbose_name = "Inventario"
