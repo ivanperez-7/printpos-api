@@ -22,7 +22,7 @@ class Venta(models.Model):
     comentarios = models.TextField(blank=True, null=True)
     requiere_factura = models.BooleanField(default=False)
     estado = models.CharField(max_length=50)
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = "Venta"
