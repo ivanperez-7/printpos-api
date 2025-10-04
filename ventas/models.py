@@ -21,7 +21,7 @@ class Venta(models.Model):
     fecha_hora_entrega = models.DateTimeField(default=timezone.now)
     comentarios = models.TextField(blank=True, null=True)
     requiere_factura = models.BooleanField(default=False)
-    estado = models.CharField(max_length=50)
+    estado = models.CharField(max_length=50, default='No terminada')
     is_active = models.BooleanField(default=False)
 
     class Meta:
