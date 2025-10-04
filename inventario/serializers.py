@@ -1,7 +1,8 @@
 from rest_framework.serializers import ModelSerializer
-from drf_writable_nested import WritableNestedModelSerializer
+from drf_writable_nested import UniqueFieldsMixin
 
 from .models import *
+from utils.serializers import CustomWritableNestedModelSerializer
 
 
 class ProductoUtilizaInventarioSerializer(ModelSerializer):
@@ -10,7 +11,13 @@ class ProductoUtilizaInventarioSerializer(ModelSerializer):
         fields = ['inventario', 'utiliza_inventario']
 
 
-class ProductoIntervaloSerializer(ModelSerializer):
+class InventarioTieneProductosSerializer(ModelSerializer):
+    class Meta:
+        model = ProductoUtilizaInventario
+        fields = ['producto', 'utiliza_inventario']
+
+
+class ProductoIntervaloSerializer(UniqueFieldsMixin, ModelSerializer):
     class Meta:
         model = ProductoIntervalo
         fields = ['desde', 'precio_con_iva', 'duplex']
@@ -22,7 +29,7 @@ class ProductoGranFormatoSerializer(ModelSerializer):
         fields = ['min_m2', 'precio_m2']
 
 
-class ProductoSerializer(WritableNestedModelSerializer):
+class ProductoSerializer(CustomWritableNestedModelSerializer):
     intervalos = ProductoIntervaloSerializer(many=True, required=False)
     gran_formato = ProductoGranFormatoSerializer(many=False, required=False)
     inventarios = ProductoUtilizaInventarioSerializer(many=True, required=False)
@@ -32,7 +39,9 @@ class ProductoSerializer(WritableNestedModelSerializer):
         fields = '__all__'
 
 
-class InventarioSerializer(ModelSerializer):
+class InventarioSerializer(CustomWritableNestedModelSerializer):
+    productos = InventarioTieneProductosSerializer(many=True, required=False)
+
     class Meta:
         model = Inventario
         fields = '__all__'
