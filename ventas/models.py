@@ -29,7 +29,7 @@ class Venta(models.Model):
         verbose_name_plural = "Ventas"
     
     def save(self, *args, **kwargs):
-        if self.__class__.objects.filter(vendedor=self.vendedor, is_active=True).exists():
+        if self.is_active and self.__class__.objects.filter(vendedor=self.vendedor, is_active=True).exists():
             raise ValueError("Ya existe una venta activa para este usuario.")
         return super().save(*args, **kwargs)
 

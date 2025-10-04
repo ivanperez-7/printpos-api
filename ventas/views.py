@@ -2,8 +2,38 @@ from django.db.models import F
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.viewsets import ModelViewSet
 
 from .models import Venta
+from .serializers import VentaSerializer
+from utils.mixins import GetWithOrmMixin
+
+
+class VentaViewSet(GetWithOrmMixin, ModelViewSet):
+    queryset = Venta.objects.all()
+    serializer_class = VentaSerializer
+    permission_classes = [IsAuthenticated]
+
+    orm_fields = [
+        'id',
+        'cliente',
+        'cliente__nombre',
+        'vendedor',
+        'vendedor__username',
+        'fecha_hora_creacion',
+        'fecha_hora_entrega',
+        'comentarios',
+        'estado',
+        'is_active'
+    ]
+    
+    def create(self, request, *args, **kwargs):
+        exists = Venta.objects.filter(vendedor=request.user, is_active=True).first()
+        if request.data.get('is_active', False) and exists:
+            return Response(data=VentaSerializer(exists).data, status=200)
+        
+        request.data['vendedor'] = request.user.id
+        return super().create(request, *args, **kwargs)
 
 
 @api_view()
