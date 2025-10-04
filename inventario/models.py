@@ -65,7 +65,7 @@ class ProductoGranFormato(models.Model):
     
     def save(self, *args, **kwargs):
         if self.producto.categoria == 'S':
-            raise ValueError('El producto es de categoría simple, no gran formato.')
+            raise ValueError('El producto es de categoría simple y se quieren insertar metros.')
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -90,7 +90,7 @@ class ProductoIntervalo(models.Model):
 
     def save(self, *args, **kwargs):
         if self.producto.categoria == 'G':
-            raise ValueError('El producto es de categoría gran formato, no simple.')
+            raise ValueError('El producto es de categoría gran formato y se quieren insertar intervalos.')
         super().save(*args, **kwargs)
 
     def __str__(self):

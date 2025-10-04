@@ -30,9 +30,9 @@ class ProductoGranFormatoSerializer(ModelSerializer):
 
 
 class ProductoSerializer(CustomWritableNestedModelSerializer):
-    intervalos = ProductoIntervaloSerializer(many=True, required=False)
-    gran_formato = ProductoGranFormatoSerializer(many=False, required=False)
-    inventarios = ProductoUtilizaInventarioSerializer(many=True, required=False)
+    intervalos = ProductoIntervaloSerializer(many=True, required=False, allow_null=True)
+    gran_formato = ProductoGranFormatoSerializer(many=False, required=False, allow_null=True)
+    inventarios = ProductoUtilizaInventarioSerializer(many=True, required=False, allow_null=True)
 
     class Meta:
         model = Producto

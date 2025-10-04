@@ -9,12 +9,10 @@ from .serializers import *
 from utils.mixins import GetWithOrmMixin
 
 
-class ProductoViewSet(GetWithOrmMixin, ModelViewSet):
+class ProductoViewSet(ModelViewSet):
     queryset = Producto.objects.filter(is_active=True)
     serializer_class = ProductoSerializer
     permission_classes = [IsAuthenticated]
-
-    orm_fields = ['codigo', 'descripcion', 'abreviado', 'categoria', 'is_active']
 
     def list(self, request):
         qs = (
