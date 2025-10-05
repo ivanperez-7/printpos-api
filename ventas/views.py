@@ -1,5 +1,5 @@
 from django.db.models import F
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
@@ -34,6 +34,17 @@ class VentaViewSet(GetWithOrmMixin, ModelViewSet):
         
         request.data['vendedor'] = request.user.id
         return super().create(request, *args, **kwargs)
+    
+    @action(detail=True, methods=['post'])
+    def finalizar(self, request, pk=None):
+        venta = self.get_object()
+        if venta.estado != 'Recibido':
+            return Response(data={'detail': 'La venta no está en estado "Recibido".'}, status=400)
+        
+        venta.estado = 'Finalizado'
+        venta.fecha_hora_entrega = F('fecha_hora_creacion')
+        venta.save()
+        return Response(data=VentaSerializer(venta).data, status=200)
 
 
 @api_view()
