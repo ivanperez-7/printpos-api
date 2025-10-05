@@ -1,5 +1,6 @@
 from django.db.models import Case, CharField, F, Sum, Value, When
 from django.db.models.functions import Cast, Coalesce, Concat
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
@@ -33,6 +34,25 @@ class ProductoViewSet(ModelViewSet):
             .values('id', 'codigo', 'descripcion_', 'abreviado', 'categoria', 'precio_con_iva', 'precio_sin_iva', 'costo_prod', 'utilidad')
         )
         return Response(data=qs, status=200)
+    
+    @action(detail=True, methods=['post'])
+    def get_precio_importe(self, request, pk=None):
+        producto = self.get_object()
+        descuento_unit = request.data.get('descuento_unit', 0.0)
+        cantidad = request.data.get('cantidad', 1)
+        
+        intervalos = producto.intervalos.filter(desde__lte=cantidad).order_by('-desde', '-duplex')
+        if not request.data.get('duplex', False):
+            intervalos = intervalos.exclude(duplex=True)
+        
+        if intervalo := intervalos.first():
+            # Usar precio de intervalo
+            precio_con_iva = intervalo.precio_con_iva
+        else:
+            # Usar precio de gran formato
+            cantidad = max(producto.gran_formato.min_m2, cantidad)
+            precio_con_iva = producto.gran_formato.precio_m2
+        return Response(data={'precio_con_iva': precio_con_iva, 'importe': (precio_con_iva - descuento_unit) * cantidad}, status=200)
 
 
 class InventarioViewSet(GetWithOrmMixin, ModelViewSet):
