@@ -1,5 +1,8 @@
+from math import ceil
+
 from django.contrib.auth.models import User
 from django.db import models
+from django.db.transaction import atomic
 from django.utils import timezone
 
 from clientes.models import Cliente
@@ -32,6 +35,22 @@ class Venta(models.Model):
         if self.is_active and self.__class__.objects.filter(vendedor=self.vendedor, is_active=True).exclude(id=self.id).exists():
             raise ValueError("Ya existe una venta activa para este usuario.")
         return super().save(*args, **kwargs)
+    
+    @atomic
+    def cancelar(self, regresar_inventario: bool = True):
+        if self.estado == 'Cancelada':
+            raise ValueError("La venta ya está cancelada.")
+        
+        self.estado = 'Cancelada'
+        self.is_active = False
+        self.save()
+
+        if regresar_inventario:
+            for detalle in self.detalles.all():
+                for pu in detalle.producto.inventarios.all():
+                    ajuste = (detalle.cantidad * pu.utiliza_inventario) / (2 if detalle.duplex else 1)
+                    pu.inventario.unidades_restantes += ceil(ajuste)
+                    pu.inventario.save()
 
     def __str__(self):
         return f"Venta #{self.id} - Cliente: {self.cliente.nombre}"
@@ -57,6 +76,15 @@ class VentaDetallado(models.Model):
     class Meta:
         verbose_name = "Detalle de Venta"
         verbose_name_plural = "Detalles de Venta"
+    
+    @atomic
+    def save(self, *args, **kwargs):
+        if self._state.adding:  # Solo ajustar inventario al ser nuevo
+            for pu in self.producto.inventarios.all():
+                ajuste = (self.cantidad * pu.utiliza_inventario) / (2 if self.duplex else 1)
+                pu.inventario.unidades_restantes -= ceil(ajuste)
+                pu.inventario.save()
+        return super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Detalle de Venta #{self.venta.id} - {self.producto.descripcion}"
