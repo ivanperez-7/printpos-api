@@ -44,18 +44,29 @@ class ProductoViewSet(ModelViewSet):
             cantidad = request.data.get('cantidad', 1)
             duplex = request.data.get('duplex', False)
             try:
-                precio_con_iva, importe = producto.obtener_precio_importe_simple(cantidad=cantidad, desc_unit=descuento_unit, duplex=duplex)
+                precio_con_iva, importe = producto.obtener_precio_importe_simple(cantidad, descuento_unit, duplex)
             except ValueError as e:
                 return Response(data={'error': str(e)}, status=400)
-        elif producto.categoria == 'G':
-            ancho = request.data.get('ancho')
-            alto = request.data.get('alto')
-            if ancho is None or alto is None:
-                return Response(data={'error': 'Para productos de gran formato se requieren los campos "ancho" y "alto".'}, status=400)
-            try:
-                precio_con_iva, importe = producto.obtener_precio_importe_gran_formato(m2=ancho*alto, desc_unit=descuento_unit)
-            except ValueError as e:
-                return Response(data={'error': str(e)}, status=400)
+        
+        # === Producto de gran formato ===
+        ancho_producto = request.data.get('ancho_producto')
+        alto_producto = request.data.get('alto_producto')
+        if ancho_producto is None or alto_producto is None:
+            return Response(data={'error': 'Para productos de gran formato se requieren los campos "ancho_producto" y "alto_producto".'}, status=400)
+        
+        ancho_material = request.data.get('ancho_material')
+        if ancho_material is None:
+            return Response(data={'error': 'Para productos de gran formato se requiere el campo "ancho_material".'}, status=400)
+        
+        # Si el alto del producto sobrepasa el ancho del material, quiere decir
+        # que no se pudo imprimir de forma normal, por lo tanto, cobrar sobrante.
+        if alto_producto > ancho_material:
+            ancho_producto = ancho_material
+
+        try:
+            precio_con_iva, importe = producto.obtener_precio_importe_gran_formato(ancho_producto*alto_producto, descuento_unit)
+        except ValueError as e:
+            return Response(data={'error': str(e)}, status=400)
 
         return Response(data={'precio_con_iva': precio_con_iva, 'importe': importe}, status=200)
 
