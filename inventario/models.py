@@ -45,6 +45,28 @@ class Producto(models.Model):
         verbose_name = "Producto"
         verbose_name_plural = "Productos"
 
+    def obtener_precio_importe_simple(self, cantidad: int, desc_unit: float = 0., duplex: bool = False):
+        """ Obtiene el precio e importe para un producto de categoría simple."""
+        if self.categoria != 'S':
+            raise ValueError('El producto no es de categoría simple.')
+
+        intervalos = self.intervalos.filter(desde__lte=cantidad).order_by('-desde', '-duplex')
+        if not duplex:
+            intervalos = intervalos.exclude(duplex=True)
+        if intervalo := intervalos.first():
+            return intervalo.precio_con_iva, (intervalo.precio_con_iva - desc_unit) * cantidad
+        raise ValueError('No hay un intervalo que cubra la cantidad solicitada.')
+
+    def obtener_precio_importe_gran_formato(self, m2: float, desc_unit: float = 0.):
+        """ Obtiene el precio e importe para un producto de categoría gran formato."""
+        if self.categoria != 'G':
+            raise ValueError('El producto no es de categoría gran formato.')
+        if not self.gran_formato:
+            raise ValueError('El producto no tiene definido un precio de gran formato.')
+
+        m2 = max(m2, self.gran_formato.min_m2)
+        return self.gran_formato.precio_m2, (self.gran_formato.precio_m2 - desc_unit) * m2
+
     def __str__(self):
         return f"{self.descripcion} ({self.codigo})"
 
@@ -62,7 +84,7 @@ class ProductoGranFormato(models.Model):
     class Meta:
         verbose_name = "Producto Gran Formato"
         verbose_name_plural = "Productos Gran Formato"
-    
+
     def save(self, *args, **kwargs):
         if self.producto.categoria == 'S':
             raise ValueError('El producto es de categoría simple y se quieren insertar metros.')
