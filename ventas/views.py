@@ -38,11 +38,10 @@ class VentaViewSet(GetWithOrmMixin, ModelViewSet):
     @action(detail=True, methods=['post'])
     def finalizar(self, request, pk=None):
         venta = self.get_object()
-        if venta.estado != 'Recibido':
-            return Response(data={'detail': 'La venta no está en estado "Recibido".'}, status=400)
+        if not venta.estado == 'No terminada' and not 'Recibido' in venta.estado:
+            return Response(data={'detail': 'La venta no está pendiente o sin terminar.'}, status=400)
         
-        venta.estado = 'Finalizado'
-        venta.fecha_hora_entrega = F('fecha_hora_creacion')
+        venta.estado = 'Terminada'
         venta.save()
         return Response(data=VentaSerializer(venta).data, status=200)
 

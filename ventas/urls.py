@@ -8,5 +8,5 @@ router.register('ventas', VentaViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('get-usuario-pendientes/', get_usuario_pendientes),
+    path('get-usuario-pendientes/', get_usuario_pendientes, name='get-usuario-pendientes'),
 ]
