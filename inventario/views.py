@@ -47,6 +47,7 @@ class ProductoViewSet(ModelViewSet):
                 precio_con_iva, importe = producto.obtener_precio_importe_simple(cantidad, descuento_unit, duplex)
             except ValueError as e:
                 return Response(data={'error': str(e)}, status=400)
+            return Response(data={'precio_con_iva': precio_con_iva, 'importe': importe}, status=200)
         
         # === Producto de gran formato ===
         ancho_producto = request.data.get('ancho_producto')
