@@ -130,6 +130,33 @@ class VentaViewSetTest(TestCase):
         response = self.client.post(url)
         self.assertEqual(response.status_code, 400)
         self.assertIn('detail', response.data)
+    
+    def test_save_progress_action(self):
+        new_user = User.objects.create_user(username='newuser', password='pass')
+        venta = Venta.objects.create(
+            cliente=self.cliente,
+            vendedor=new_user,
+            estado='No terminada',
+            is_active=True
+        )
+        url = reverse('venta-detail', args=[venta.id])
+        data = {
+            'comentarios': 'Nuevos comentarios',
+            'detalles': [
+                {
+                    'cantidad': 1255.0,
+                    'precio': 0.70,
+                    'descuento': 0.00,
+                    'especificaciones': 'EJEMPLO DE ESPECIFICACIONES',
+                    'producto': Producto.objects.create(descripcion='Otro Producto').id
+                }
+            ]
+        }
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, 200)
+        venta.refresh_from_db()
+        self.assertEqual(venta.comentarios, 'Nuevos comentarios')
+        self.assertEqual(venta.detalles.count(), 1)
 
 
 class GetUsuarioPendientesTest(TestCase):
