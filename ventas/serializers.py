@@ -1,3 +1,4 @@
+from drf_writable_nested import WritableNestedModelSerializer
 from rest_framework.serializers import ModelSerializer
 
 from .models import *
@@ -6,10 +7,10 @@ from .models import *
 class VentaDetalladoSerializer(ModelSerializer):
     class Meta:
         model = VentaDetallado
-        fields = '__all__'
+        fields = ['cantidad', 'precio', 'descuento', 'especificaciones', 'duplex', 'producto']
 
 
-class VentaSerializer(ModelSerializer):
+class VentaSerializer(WritableNestedModelSerializer):
     detalles = VentaDetalladoSerializer(many=True, required=False)
     
     class Meta:
