@@ -1,3 +1,4 @@
+from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
@@ -132,6 +133,7 @@ class ProductoUtilizaInventarioModelTest(TestCase):
 class ProductoViewSetTest(TestCase):
     def setUp(self):
         self.client = APIClient()
+        self.user = User.objects.create_user(username='testuser', password='testpass')
         self.producto_simple = Producto.objects.create(
             codigo="A004",
             descripcion="Tarjeta",
@@ -161,25 +163,66 @@ class ProductoViewSetTest(TestCase):
     def test_list_requires_auth(self):
         url = reverse('producto-list')
         response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_get_precio_importe(self):
-        self.client.force_authenticate(user=None)
+        self.client.force_authenticate(user=self.user)
         url = reverse('producto-get-precio-importe', args=[self.producto_simple.id])
-        data = {'cantidad': 2, 'descuento_unit': 10.0}
+        data = {'cantidad': 20, 'descuento_unit': 1.0}
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('precio_con_iva', response.data)
         self.assertIn('importe', response.data)
 
     def test_get_precio_importe_gran_formato(self):
-        self.client.force_authenticate(user=None)
+        self.client.force_authenticate(user=self.user)
         url = reverse('producto-get-precio-importe', args=[self.producto_gran_formato.id])
-        data = {'cantidad': 0.7, 'descuento_unit': 5.0}
+        data = {'ancho_producto': 2.0, 'alto_producto': 1.5, 'ancho_material': 1.0, 'descuento_unit': 5.0}
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('precio_con_iva', response.data)
         self.assertIn('importe', response.data)
+
+    def test_duplex_intervalos(self):
+        self.client.force_authenticate(user=self.user)
+        ProductoIntervalo.objects.create(
+            producto=self.producto_simple,
+            desde=101,
+            precio_con_iva=150.0,
+            duplex=False
+        )
+        ProductoIntervalo.objects.create(
+            producto=self.producto_simple,
+            desde=101,
+            precio_con_iva=120.0,
+            duplex=True
+        )
+
+        # Califica para precio duplex
+        url = reverse('producto-get-precio-importe', args=[self.producto_simple.id])
+        data = {'cantidad': 120, 'duplex': True}
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['precio_con_iva'], 120.0)
+        self.assertEqual(response.data['importe'], 120*120.0)
+
+        # No califica para precio duplex, usa el normal
+        url = reverse('producto-get-precio-importe', args=[self.producto_simple.id])
+        data = {'cantidad': 50, 'duplex': True}
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['precio_con_iva'], 100.0)
+        self.assertEqual(response.data['importe'], 50*100.0)
+    
+    def test_sobrante_gran_formato(self):
+        self.client.force_authenticate(user=self.user)
+        url = reverse('producto-get-precio-importe', args=[self.producto_gran_formato.id])
+        data = {'ancho_producto': 1.0, 'alto_producto': 3, 'ancho_material': 2.0}
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # El ancho del producto se ajusta al ancho del material
+        self.assertEqual(response.data['precio_con_iva'], 200.0)
+        self.assertEqual(response.data['importe'], 3.0*2.0*200.0)
 
 
 class InventarioViewSetTest(TestCase):
@@ -197,4 +240,4 @@ class InventarioViewSetTest(TestCase):
     def test_list_requires_auth(self):
         url = reverse('inventario-list')
         response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

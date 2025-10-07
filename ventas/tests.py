@@ -5,7 +5,7 @@ from rest_framework.test import APIClient
 
 from .models import Venta, VentaDetallado
 from clientes.models import Cliente
-from inventario.models import Producto
+from inventario.models import Producto, Inventario
 
 
 class VentaModelTest(TestCase):
@@ -37,6 +37,11 @@ class VentaDetalladoModelTest(TestCase):
         self.user = User.objects.create_user(username='testuser', password='pass')
         self.cliente = Cliente.objects.create(nombre='Cliente Test')
         self.producto = Producto.objects.create(descripcion='Producto Test')
+        self.inventario = Inventario.objects.create(
+            nombre='Inventario Test', tamano_lote=500, precio_lote=100, minimo_lotes=1, unidades_restantes=800
+        )
+        self.producto.inventarios.create(inventario=self.inventario, utiliza_inventario=1)
+
         self.venta = Venta.objects.create(
             cliente=self.cliente,
             vendedor=self.user,
@@ -63,6 +68,29 @@ class VentaDetalladoModelTest(TestCase):
         )
         with self.assertRaises(NotImplementedError):
             _ = detalle.importe
+    
+    def test_substract_inventory_on_save(self):
+        VentaDetallado.objects.create(
+            venta=self.venta,
+            producto=self.producto,
+            cantidad=3,
+            precio=10,
+            descuento=0
+        )
+        self.inventario.refresh_from_db()
+        self.assertEqual(self.inventario.unidades_restantes, 797)
+    
+    def test_add_inventory_on_cancel(self):
+        VentaDetallado.objects.create(
+            venta=self.venta,
+            producto=self.producto,
+            cantidad=4,
+            precio=10,
+            descuento=0
+        )
+        self.venta.cancelar()
+        self.inventario.refresh_from_db()
+        self.assertEqual(self.inventario.unidades_restantes, 800)
 
 
 class VentaViewSetTest(TestCase):
