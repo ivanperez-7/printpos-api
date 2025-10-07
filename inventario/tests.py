@@ -5,6 +5,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from .models import *
+from .serializers import *
 
 
 class InventarioModelTest(TestCase):
@@ -128,6 +129,150 @@ class ProductoUtilizaInventarioModelTest(TestCase):
 
     def test_str(self):
         self.assertIn("Cartulina", str(self.utiliza))
+
+
+class ProductoSerializerTest(TestCase):
+    def setUp(self):
+        self.producto = Producto.objects.create(
+            codigo="T001",
+            descripcion="Tarjeta Test",
+            abreviado="TarjTest",
+            categoria="S",
+            is_active=True
+        )
+        self.producto_gran_formato = Producto.objects.create(
+            codigo="T002",
+            descripcion="Lona Test",
+            abreviado="Lona",
+            categoria="G",
+            is_active=True
+        )
+        self.inventario = Inventario.objects.create(
+            nombre="Cartulina Test",
+            tamano_lote=100,
+            precio_lote=500,
+            minimo_lotes=2,
+            unidades_restantes=250,
+            is_active=True
+        )
+        self.intervalo = ProductoIntervalo.objects.create(
+            producto=self.producto,
+            desde=10,
+            precio_con_iva=120.0,
+            duplex=True
+        )
+        self.gran_formato = ProductoGranFormato.objects.create(
+            producto=self.producto_gran_formato,
+            min_m2=2.0,
+            precio_m2=150.0
+        )
+        self.utiliza = ProductoUtilizaInventario.objects.create(
+            producto=self.producto,
+            inventario=self.inventario,
+            utiliza_inventario=2.0
+        )
+
+    def test_serialize_producto_with_nested(self):
+        serializer = ProductoSerializer(instance=self.producto)
+        data = serializer.data
+        self.assertEqual(data['codigo'], "T001")
+        self.assertIn('intervalos', data)
+        self.assertIn('gran_formato', data)
+        self.assertIn('inventarios', data)
+        self.assertIsInstance(data['intervalos'], list)
+        self.assertIsInstance(data['inventarios'], list)
+        self.assertIsNone(data['gran_formato'])
+    
+    def test_serialize_producto_gran_formato_with_nested(self):
+        serializer = ProductoSerializer(instance=self.producto_gran_formato)
+        data = serializer.data
+        self.assertEqual(data['codigo'], "T002")
+        self.assertIn('intervalos', data)
+        self.assertIn('gran_formato', data)
+        self.assertIn('inventarios', data)
+        self.assertIsInstance(data['intervalos'], list)
+        self.assertIsInstance(data['inventarios'], list)
+        self.assertIsInstance(data['gran_formato'], dict)
+
+    def test_deserialize_producto_with_nested(self):
+        payload = {
+            "codigo": "T002.0",
+            "descripcion": "Tarjeta Nueva",
+            "abreviado": "TarjN",
+            "categoria": "S",
+            "is_active": True,
+            "intervalos": [
+                {"desde": 5, "precio_con_iva": 100.0, "duplex": False}
+            ],
+            "inventarios": [
+                {"inventario": self.inventario.id, "utiliza_inventario": 1.5}
+            ]
+        }
+        serializer = ProductoSerializer(data=payload)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        producto = serializer.save()
+        self.assertEqual(producto.codigo, "T002.0")
+        self.assertEqual(producto.intervalos.count(), 1)
+        self.assertEqual(producto.inventarios.count(), 1)
+
+        with self.assertRaises(Producto.gran_formato.RelatedObjectDoesNotExist):
+            _ = producto.gran_formato
+        
+        # === Gran formato ===
+        payload = {
+            "codigo": "T003.0",
+            "descripcion": "Lona Nueva",
+            "abreviado": "Lona",
+            "categoria": "G",
+            "is_active": True,
+            "gran_formato": {"min_m2": 1.0, "precio_m2": 200.0},
+            "inventarios": [
+                {"inventario": self.inventario.id, "utiliza_inventario": 1.5}
+            ]
+        }
+        serializer = ProductoSerializer(data=payload)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        producto = serializer.save()
+        self.assertEqual(producto.codigo, "T003.0")
+        self.assertIsNotNone(producto.gran_formato)
+        self.assertEqual(producto.intervalos.count(), 0)
+        self.assertEqual(producto.inventarios.count(), 1)
+
+    def test_partial_update_producto(self):
+        serializer = ProductoSerializer(instance=self.producto, data={"descripcion": "Tarjeta Actualizada"}, partial=True)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        producto = serializer.save()
+        self.assertEqual(producto.descripcion, "Tarjeta Actualizada")
+
+    def test_invalid_gran_formato_for_simple_category(self):
+        payload = {
+            "codigo": "T003",
+            "descripcion": "Lona2",
+            "abreviado": "LonaTest2",
+            "categoria": "S",
+            "is_active": True,
+            "gran_formato": {"min_m2": 1.0, "precio_m2": 200.0}
+        }
+        serializer = ProductoSerializer(data=payload)
+        with self.assertRaises(ValueError):
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+    
+    def test_invalid_simple_for_gran_category(self):
+        payload = {
+            "codigo": "T005",
+            "descripcion": "Impresiones",
+            "abreviado": "Impresiones",
+            "categoria": "G",
+            "is_active": True,
+            "intervalos": [
+                {"desde": 5, "precio_con_iva": 100.0, "duplex": False}
+            ]
+        }
+        serializer = ProductoSerializer(data=payload)
+        with self.assertRaises(ValueError):
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
 
 
 class ProductoViewSetTest(TestCase):
