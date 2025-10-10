@@ -4,7 +4,7 @@ from django.db import models
 class Inventario(models.Model):
     nombre = models.CharField(max_length=50, unique=True)
     tamano_lote = models.FloatField()
-    precio_lote = models.FloatField()
+    precio_lote = models.DecimalField(max_digits=10, decimal_places=2)
     minimo_lotes = models.FloatField()
     unidades_restantes = models.FloatField()
     is_active = models.BooleanField(default=True)
@@ -79,7 +79,7 @@ class ProductoGranFormato(models.Model):
         limit_choices_to={'categoria': 'G'}
     )
     min_m2 = models.FloatField()
-    precio_m2 = models.FloatField()
+    precio_m2 = models.DecimalField(max_digits=10, decimal_places=2)
 
     class Meta:
         verbose_name = "Producto Gran Formato"
@@ -102,7 +102,7 @@ class ProductoIntervalo(models.Model):
         limit_choices_to={'categoria': 'S'}
     )
     desde = models.PositiveIntegerField()
-    precio_con_iva = models.FloatField()
+    precio_con_iva = models.DecimalField(max_digits=10, decimal_places=2)
     duplex = models.BooleanField()
 
     class Meta:

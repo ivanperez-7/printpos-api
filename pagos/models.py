@@ -7,7 +7,7 @@ from ventas.models import Venta
 
 class MetodoPago(models.Model):
     metodo = models.CharField(max_length=30, unique=True)
-    comision_porcentaje = models.FloatField(default=0.0)
+    comision_porcentaje = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
 
     class Meta:
         verbose_name = "Método de Pago"
@@ -19,7 +19,7 @@ class MetodoPago(models.Model):
 
 class Caja(models.Model):
     fecha_hora = models.DateTimeField(default=timezone.now)
-    monto = models.FloatField()
+    monto = models.DecimalField(max_digits=10, decimal_places=2)
     descripcion = models.TextField(blank=True, null=True)
     metodo_pago = models.ForeignKey(
         MetodoPago,
@@ -53,8 +53,8 @@ class VentaPago(models.Model):
         related_name="pagos"
     )
     fecha_hora = models.DateTimeField(default=timezone.now)
-    monto = models.FloatField()
-    recibido = models.FloatField(blank=True, null=True)
+    monto = models.DecimalField(max_digits=10, decimal_places=2)
+    recibido = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     usuario = models.ForeignKey(
         User,
         on_delete=models.PROTECT,
