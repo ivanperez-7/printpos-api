@@ -1,4 +1,3 @@
-from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
@@ -6,6 +5,7 @@ from rest_framework.test import APIClient
 
 from .models import *
 from .serializers import *
+from organizacion.models import Usuario
 
 
 class InventarioModelTest(TestCase):
@@ -291,7 +291,7 @@ class ProductoSerializerTest(TestCase):
 class ProductoViewSetTest(TestCase):
     def setUp(self):
         self.client = APIClient()
-        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.user = Usuario.objects.create_user(username='testuser', password='testpass')
         self.producto_simple = Producto.objects.create(
             codigo="A004",
             descripcion="Tarjeta",

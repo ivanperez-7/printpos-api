@@ -1,6 +1,5 @@
 from decimal import Decimal
 
-from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -9,12 +8,13 @@ from rest_framework.test import APIClient, APITestCase
 from .models import MetodoPago, Caja, VentaPago
 from .pdf import generar_corte_pdf
 from clientes.models import Cliente
+from organizacion.models import Usuario
 from ventas.models import Venta
 
 
 class CajaModelTest(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username="testuser", password="pass")
+        self.user = Usuario.objects.create_user(username="testuser", password="pass")
         self.metodo = MetodoPago.objects.create(metodo="Tarjeta", comision_porcentaje=Decimal("1.00"))
 
     def test_str(self):
@@ -31,7 +31,7 @@ class CajaModelTest(TestCase):
 
 class CajaViewSetTest(APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username="apiuser", password="pass")
+        self.user = Usuario.objects.create_user(username="apiuser", password="pass")
         self.metodo = MetodoPago.objects.create(metodo="Efectivo", comision_porcentaje=Decimal("0.00"))
         Caja.objects.create(
             monto=Decimal("50.00"),
@@ -63,7 +63,7 @@ class CajaViewSetTest(APITestCase):
 class VentaPagoModelTest(TestCase):
     def setUp(self):
         self.cliente = Cliente.objects.create(nombre="Cliente Test")
-        self.user = User.objects.create_user(username="testuser", password="pass")
+        self.user = Usuario.objects.create_user(username="testuser", password="pass")
         self.metodo = MetodoPago.objects.create(metodo="Transferencia", comision_porcentaje=Decimal("0.00"))
         self.venta = Venta.objects.create(cliente=self.cliente, vendedor=self.user, estado="No terminada", is_active=True)
 
@@ -102,7 +102,7 @@ class VentaPagoModelTest(TestCase):
 class PagosViewsTest(APITestCase):
     def setUp(self):
         self.cliente = Cliente.objects.create(nombre="Cliente Test")
-        self.user = User.objects.create_user(username="apiuser", password="pass")
+        self.user = Usuario.objects.create_user(username="apiuser", password="pass")
         self.metodo = MetodoPago.objects.create(metodo="Efectivo", comision_porcentaje=Decimal("0.00"))
         self.venta = Venta.objects.create(cliente=self.cliente, vendedor=self.user, estado="No terminada", is_active=True)
         Caja.objects.create(
@@ -161,7 +161,7 @@ class PagosViewsTest(APITestCase):
 class PdfTest(TestCase):
     def test_generar_corte_pdf(self):
         metodo = MetodoPago.objects.create(metodo="Efectivo", comision_porcentaje=Decimal("0.00"))
-        user = User.objects.create_user(username="pdfuser", password="pass")
+        user = Usuario.objects.create_user(username="pdfuser", password="pass")
         venta = Venta.objects.create(
             cliente=Cliente.objects.create(nombre="Cliente Test"), vendedor=user, estado="No terminada", is_active=True
         )

@@ -1,12 +1,13 @@
-from django.contrib.auth.models import User
 from django.urls import reverse
 from rest_framework.test import APIClient, APITestCase
+
+from organizacion.models import Usuario
 
 
 class SystemTests(APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username="user", password="pass")
-        self.user_to_test = User.objects.create_user(username="user2", password="pass")
+        self.user = Usuario.objects.create_user(username="user", password="pass")
+        self.user_to_test = Usuario.objects.create_user(username="user2", password="pass")
         self.client = APIClient()
 
     def test_login_endpoint(self):

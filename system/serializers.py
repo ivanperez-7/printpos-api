@@ -1,5 +1,6 @@
-from django.contrib.auth.models import User
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
+from organizacion.models import Usuario
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -9,5 +10,5 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             'token': data['access'],
             'refresh': data['refresh'],
             'username': attrs['username'],
-            'is_admin': User.objects.get(username=attrs['username']).is_manager
+            'is_admin': Usuario.objects.get(username=attrs['username']).is_manager
         }

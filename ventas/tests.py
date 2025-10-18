@@ -1,4 +1,3 @@
-from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
@@ -6,12 +5,13 @@ from rest_framework.test import APIClient
 from .models import Venta, VentaDetallado
 from clientes.models import Cliente
 from inventario.models import Producto, Inventario
+from organizacion.models import Usuario
 from pagos.models import MetodoPago, VentaPago
 
 
 class VentaModelTest(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='pass')
+        self.user = Usuario.objects.create_user(username='testuser', password='pass')
         self.cliente = Cliente.objects.create(nombre='Cliente Test')
         self.producto = Producto.objects.create(descripcion='Producto Test')
         self.venta = Venta.objects.create(
@@ -61,7 +61,7 @@ class VentaModelTest(TestCase):
 
 class VentaDetalladoModelTest(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='pass')
+        self.user = Usuario.objects.create_user(username='testuser', password='pass')
         self.cliente = Cliente.objects.create(nombre='Cliente Test')
         self.producto = Producto.objects.create(descripcion='Producto Test')
         self.inventario = Inventario.objects.create(
@@ -123,7 +123,7 @@ class VentaDetalladoModelTest(TestCase):
 class VentaViewSetTest(TestCase):
     def setUp(self):
         self.client = APIClient()
-        self.user = User.objects.create_user(username='testuser', password='pass')
+        self.user = Usuario.objects.create_user(username='testuser', password='pass')
         self.cliente = Cliente.objects.create(nombre='Cliente Test')
         self.venta = Venta.objects.create(
             cliente=self.cliente,
@@ -159,7 +159,7 @@ class VentaViewSetTest(TestCase):
         self.assertIn('detail', response.data)
     
     def test_save_progress_action(self):
-        new_user = User.objects.create_user(username='newuser', password='pass')
+        new_user = Usuario.objects.create_user(username='newuser', password='pass')
         venta = Venta.objects.create(
             cliente=self.cliente,
             vendedor=new_user,
@@ -189,7 +189,7 @@ class VentaViewSetTest(TestCase):
 class GetUsuarioPendientesTest(TestCase):
     def setUp(self):
         self.client = APIClient()
-        self.user = User.objects.create_user(username='testuser', password='pass')
+        self.user = Usuario.objects.create_user(username='testuser', password='pass')
         self.cliente = Cliente.objects.create(nombre='Cliente Test')
         self.venta = Venta.objects.create(
             cliente=self.cliente,
