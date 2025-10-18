@@ -1,12 +1,12 @@
 from math import ceil
 
-from django.contrib.auth.models import User
 from django.db import models
 from django.db.transaction import atomic
 from django.utils import timezone
 
 from clientes.models import Cliente
 from inventario.models import Producto
+from organizacion.models import Usuario
 
 
 class Venta(models.Model):
@@ -16,7 +16,7 @@ class Venta(models.Model):
         related_name="ventas"
     )
     vendedor = models.ForeignKey(
-        User,
+        Usuario,
         on_delete=models.CASCADE,
         related_name="ventas"
     )

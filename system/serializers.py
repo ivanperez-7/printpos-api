@@ -9,5 +9,5 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             'token': data['access'],
             'refresh': data['refresh'],
             'username': attrs['username'],
-            'is_admin': User.objects.get(username=attrs['username']).is_staff
+            'is_admin': User.objects.get(username=attrs['username']).is_manager
         }

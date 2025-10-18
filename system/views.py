@@ -16,7 +16,7 @@ def verificar_credenciales_admin(request):
 
     user = authenticate(username=username, password=password)
 
-    if user is not None and user.is_staff:
+    if user is not None and user.is_manager:
         return Response({"detail": "Credenciales válidas"}, status=status.HTTP_200_OK)
     else:
         return Response({"detail": "Usuario no existe o no es staff"}, status=status.HTTP_401_UNAUTHORIZED)

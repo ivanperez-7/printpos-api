@@ -1,9 +1,9 @@
-from django.contrib.auth.models import User
 from django.db import models
 from django.db.models import Case, CharField, Value, When
 from django.db.models.functions import Cast, Concat
 from django.utils import timezone
 
+from organizacion.models import Usuario
 from ventas.models import Venta
 
 
@@ -29,7 +29,7 @@ class Caja(models.Model):
         related_name="movimientos_caja"
     )
     usuario = models.ForeignKey(
-        User,
+        Usuario,
         on_delete=models.PROTECT,
         related_name="movimientos_caja"
     )
@@ -69,7 +69,7 @@ class VentaPago(models.Model):
     monto = models.DecimalField(max_digits=10, decimal_places=2)
     recibido = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     usuario = models.ForeignKey(
-        User,
+        Usuario,
         on_delete=models.PROTECT,
         related_name="pagos_registrados"
     )

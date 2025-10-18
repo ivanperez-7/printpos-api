@@ -35,7 +35,7 @@ class SystemTests(APITestCase):
         self.assertIn("detail", response.data)
         
         # Make user staff and test again
-        self.user_to_test.is_staff = True
+        self.user_to_test.is_manager = True
         self.user_to_test.save()
         
         response = self.client.post(url, {"username": "user2", "password": "pass"}, format='json')
