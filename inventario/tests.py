@@ -335,7 +335,7 @@ class ProductoViewSetTest(TestCase):
     def test_list_requires_auth(self):
         url = reverse('producto-list')
         response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_get_precio_importe(self):
         self.client.force_authenticate(user=self.user)
@@ -412,4 +412,4 @@ class InventarioViewSetTest(TestCase):
     def test_list_requires_auth(self):
         url = reverse('inventario-list')
         response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
