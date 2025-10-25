@@ -1,7 +1,26 @@
 from django.contrib.auth import authenticate
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework_simplejwt.authentication import JWTAuthentication
+
+
+class CookieJWTAuthentication(JWTAuthentication):
+    def authenticate(self, request):
+        access = request.COOKIES.get('access')
+        if not access:
+            return None
+        validated_token = self.get_validated_token(access)
+        return self.get_user(validated_token), validated_token
+
+
+@api_view()
+@authentication_classes([CookieJWTAuthentication])
+@permission_classes([IsAuthenticated])
+def me(request):
+    user = request.user
+    return Response({'id': user.id, 'username': user.username})
 
 
 @api_view(['POST'])
