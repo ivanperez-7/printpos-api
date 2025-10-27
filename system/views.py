@@ -1,6 +1,10 @@
+import os
+from datetime import timedelta
+
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.middleware.csrf import get_token
+from django.urls import reverse
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -19,9 +23,11 @@ class CookieTokenObtainPairView(TokenObtainPairView):
                 response.set_cookie(
                     key='refresh_token',
                     value=refresh,
-                    httponly=False, # !!!!!!!
-                    secure=not settings.LOCAL_DEV,
-                    samesite='Lax' if settings.LOCAL_DEV else 'None'
+                    httponly=True,
+                    secure=not settings.DEBUG,
+                    samesite='Lax' if settings.DEBUG else 'None',
+                    path=reverse('token_refresh'),
+                    max_age=settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME']
                 )
                 
             csrf_token = get_token(request)
@@ -29,11 +35,9 @@ class CookieTokenObtainPairView(TokenObtainPairView):
                 key='csrftoken',
                 value=csrf_token,
                 httponly=False,
-                secure=not settings.LOCAL_DEV,
-                samesite='Lax' if settings.LOCAL_DEV else 'None'
+                secure=not settings.DEBUG,
+                samesite='Lax' if settings.DEBUG else 'None'
             )
-
-            return Response(data, status=status.HTTP_200_OK)
         return response
 
 
@@ -54,19 +58,8 @@ class CookieTokenRefreshView(TokenRefreshView):
 @permission_classes([IsAuthenticated])
 def logout_view(request):
     response = Response({'detail': 'Sesión cerrada correctamente.'}, status=status.HTTP_200_OK)
-    response.delete_cookie(
-        key='refresh_token',
-        secure=not settings.LOCAL_DEV,
-        samesite='None' if not settings.LOCAL_DEV else 'Lax',
-    )
+    response.delete_cookie(key='refresh_token')
     return response
-
-
-@api_view()
-@permission_classes([IsAuthenticated])
-def me(request):
-    user = request.user
-    return Response({'id': user.id, 'username': user.username})
 
 
 @api_view(['POST'])
