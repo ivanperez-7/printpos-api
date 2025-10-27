@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.contrib.auth import authenticate
-from django.urls import reverse
+from django.middleware.csrf import get_token
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -19,10 +19,20 @@ class CookieTokenObtainPairView(TokenObtainPairView):
                 response.set_cookie(
                     key='refresh_token',
                     value=refresh,
-                    httponly=True,
+                    httponly=False, # !!!!!!!
                     secure=not settings.LOCAL_DEV,
-                    samesite='None' if not settings.LOCAL_DEV else 'Lax',
+                    samesite='Lax' if settings.LOCAL_DEV else 'None'
                 )
+                
+            csrf_token = get_token(request)
+            response.set_cookie(
+                key='csrftoken',
+                value=csrf_token,
+                httponly=False,
+                secure=not settings.LOCAL_DEV,
+                samesite='Lax' if settings.LOCAL_DEV else 'None'
+            )
+
             return Response(data, status=status.HTTP_200_OK)
         return response
 
@@ -38,6 +48,18 @@ class CookieTokenRefreshView(TokenRefreshView):
         serializer.is_valid(raise_exception=True)
 
         return Response(serializer.validated_data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def logout_view(request):
+    response = Response({'detail': 'Sesión cerrada correctamente.'}, status=status.HTTP_200_OK)
+    response.delete_cookie(
+        key='refresh_token',
+        secure=not settings.LOCAL_DEV,
+        samesite='None' if not settings.LOCAL_DEV else 'Lax',
+    )
+    return response
 
 
 @api_view()
