@@ -1,4 +1,5 @@
 from django.contrib.auth import authenticate
+from django.urls import reverse
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -20,7 +21,7 @@ class CookieTokenObtainPairView(TokenObtainPairView):
                     httponly=True,
                     secure=True,
                     samesite='None',
-                    path='/api/token/refresh/'
+                    path=reverse('token_refresh')
                 )
             return Response(data, status=status.HTTP_200_OK)
         return response
