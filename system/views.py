@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth import authenticate
 from django.urls import reverse
 from rest_framework import status
@@ -19,9 +20,8 @@ class CookieTokenObtainPairView(TokenObtainPairView):
                     key='refresh_token',
                     value=refresh,
                     httponly=True,
-                    secure=True,
-                    samesite='None',
-                    path=reverse('token_refresh')
+                    secure=not settings.LOCAL_DEV,
+                    samesite='None' if not settings.LOCAL_DEV else 'Lax',
                 )
             return Response(data, status=status.HTTP_200_OK)
         return response
