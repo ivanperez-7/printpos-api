@@ -1,3 +1,6 @@
 axblack==20220330
+django-extensions==4.1
 ipython==9.6.0
 pdbp==1.7.1
+pyOpenSSL==25.3.0
+Werkzeug==3.1.3
