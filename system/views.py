@@ -1,22 +1,45 @@
 from django.contrib.auth import authenticate
 from rest_framework import status
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 
-class CookieJWTAuthentication(JWTAuthentication):
-    def authenticate(self, request):
-        access = request.COOKIES.get('access')
-        if not access:
-            return None
-        validated_token = self.get_validated_token(access)
-        return self.get_user(validated_token), validated_token
+class CookieTokenObtainPairView(TokenObtainPairView):
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        if response.status_code == 200:
+            data = response.data
+            refresh = data.pop('refresh', None)
+
+            if refresh:
+                response.set_cookie(
+                    key='refresh_token',
+                    value=refresh,
+                    httponly=True,
+                    secure=True,
+                    samesite='None',
+                    path='/api/token/refresh/'
+                )
+            return Response(data, status=status.HTTP_200_OK)
+        return response
+
+
+class CookieTokenRefreshView(TokenRefreshView):
+    def post(self, request, *args, **kwargs):
+        refresh = request.COOKIES.get('refresh_token')
+
+        if refresh is None:
+            return Response({'detail': 'Refresh token not found.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        serializer = self.get_serializer(data={'refresh': refresh})
+        serializer.is_valid(raise_exception=True)
+
+        return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
 
 @api_view()
-@authentication_classes([CookieJWTAuthentication])
 @permission_classes([IsAuthenticated])
 def me(request):
     user = request.user
