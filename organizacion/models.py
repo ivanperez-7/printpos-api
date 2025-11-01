@@ -24,4 +24,5 @@ class Sucursal(models.Model):
 
 class Usuario(AbstractUser):
     sucursal = models.ManyToManyField(Sucursal, blank=True, related_name='usuarios')
+    avatar = models.ImageField(upload_to='avatar/', null=True, blank=True)
     is_manager = models.BooleanField(default=False)
