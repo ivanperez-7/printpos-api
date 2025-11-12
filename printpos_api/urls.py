@@ -10,6 +10,7 @@ urlpatterns = [
     path('api/v1/token/refresh/', CookieTokenRefreshView.as_view(), name='token_refresh'),
     path('api/v1/logout/', logout_view, name='logout'),
     path('api/v1/productos/', include('productos.urls')),
+    path('api/v1/movimientos/', include('movimiento.urls')),
 ]
 
 admin.site.site_header = "PrintPOS DB"

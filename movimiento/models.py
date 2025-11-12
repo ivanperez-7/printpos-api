@@ -85,9 +85,20 @@ class SalidaInventario(models.Model):
 class PasoAprobacion(models.Model):
     '''Flujo de aprobación configurable para cualquier tipo de objeto (entrada, salida, etc.)'''
 
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
-    object_id = models.BigIntegerField()
-    content_object = GenericForeignKey('content_type', 'object_id')
+    entrada = models.ForeignKey(
+        EntradaInventario,
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
+        related_name='pasos_aprobacion'
+    )
+    salida = models.ForeignKey(
+        SalidaInventario,
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
+        related_name='pasos_aprobacion'
+    )
 
     user_aprueba = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='pasos_aprobacion')
     paso = models.PositiveIntegerField(default=1)
@@ -98,10 +109,15 @@ class PasoAprobacion(models.Model):
     class Meta:
         verbose_name = 'Paso de aprobación'
         verbose_name_plural = 'Flujo de aprobaciones'
-        ordering = ['content_type', 'object_id', 'paso']
+        ordering = ['paso']
 
     def __str__(self):
-        return f'Aprobación {self.paso} para {self.content_object}'
+        return f'Aprobación {self.paso} para {self.entrada or self.salida}'
+    
+    def save(self, *args, **kwargs):
+        if self.entrada and self.salida:
+            raise ValueError('Un PasoAprobacion no puede estar asociado a una entrada y una salida al mismo tiempo.')
+        super().save(*args, **kwargs)
 
     def approve(self):
         '''Marca el paso como aprobado.'''

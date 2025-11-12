@@ -105,22 +105,21 @@ class SalidaInventarioAdmin(admin.ModelAdmin):
 class PasoAprobacionAdmin(admin.ModelAdmin):
     """Flujo de aprobación genérico para entradas/salidas."""
     list_display = (
-        'content_type', 'object_id', 'user_aprueba',
+        'entrada', 'salida', 'user_aprueba',
         'paso', 'aprobado', 'aprobado_fecha', 'short_comentarios'
     )
-    list_filter = ('aprobado', 'content_type', 'aprobado_fecha')
+    list_filter = ('aprobado', 'aprobado_fecha')
     search_fields = (
         'user_aprueba__username', 'comentarios',
-        'content_type__model', 'object_id'
     )
     autocomplete_fields = ('user_aprueba',)
     readonly_fields = ('aprobado_fecha',)
-    ordering = ('content_type', 'object_id', 'paso')
+    ordering = ('entrada', 'salida', 'paso')
     list_per_page = 30
 
     fieldsets = (
         ('Información del flujo', {
-            'fields': ('content_type', 'object_id', 'user_aprueba', 'paso'),
+            'fields': ('entrada', 'salida', 'user_aprueba', 'paso'),
         }),
         ('Estado y comentarios', {
             'fields': ('aprobado', 'aprobado_fecha', 'comentarios'),
