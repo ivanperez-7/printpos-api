@@ -1,16 +1,15 @@
+from django.contrib.auth.models import User
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-
-from organizacion.models import Usuario
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super(CustomTokenObtainPairSerializer, self).validate(attrs)
-        user = Usuario.objects.get(username=attrs['username'])
+        user = User.objects.get(username=attrs['username'])
         return {
             'access': data['access'],
             'refresh': data['refresh'],
             'username': attrs['username'],
             'email': user.email,
-            'avatar': user.avatar.path if user.avatar else None,
+            'avatar': user.profile.avatar.path if user.avatar else None,
         }

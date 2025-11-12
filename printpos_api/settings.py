@@ -56,12 +56,10 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt',
-    'clientes',
-    'inventario',
-    'pagos',
-    'system',
-    'ventas',
+    'movimiento',
     'organizacion',
+    'productos',
+    'system',
 ]
 
 if DEBUG:
@@ -142,8 +140,6 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-
-AUTH_USER_MODEL = "organizacion.Usuario"
 
 
 # Internationalization

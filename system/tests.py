@@ -1,13 +1,12 @@
+from django.contrib.auth.models import User
 from django.urls import reverse
 from rest_framework.test import APIClient, APITestCase
-
-from organizacion.models import Usuario
 
 
 class SystemTests(APITestCase):
     def setUp(self):
-        self.user = Usuario.objects.create_user(username="user", password="pass")
-        self.user_to_test = Usuario.objects.create_user(username="user2", password="pass")
+        self.user = User.objects.create_user(username="user", password="pass")
+        self.user_to_test = User.objects.create_user(username="user2", password="pass")
         self.client = APIClient()
 
     def test_login_endpoint(self):
@@ -34,7 +33,7 @@ class SystemTests(APITestCase):
         self.assertIn("detail", response.data)
         
         # Make user staff and test again
-        self.user_to_test.is_manager = True
+        self.user_to_test.profile.is_manager = True
         self.user_to_test.save()
         
         response = self.client.post(url, {"username": "user2", "password": "pass"}, format='json')
