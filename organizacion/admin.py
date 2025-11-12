@@ -1,72 +1,67 @@
 from django.contrib import admin
 
-from .models import Sucursal, Almacen, UserProfile
+from .models import Sucursal, Almacen, PerfilUsuario
 
 
 @admin.register(Sucursal)
 class SucursalAdmin(admin.ModelAdmin):
-    """Admin de sucursales (filiales o unidades del negocio)"""
-
-    list_display = ('nombre', 'direccion', 'is_active')
-    list_filter = ('is_active',)
+    """Administración de sucursales."""
+    list_display = ('nombre', 'direccion', 'activo')
     search_fields = ('nombre', 'direccion')
-    ordering = ('nombre',)
-    list_editable = ('is_active',)
+    list_filter = ('activo',)
     list_per_page = 25
-
+    ordering = ('nombre',)
     fieldsets = (
         ('Información general', {
-            'fields': ('nombre', 'direccion', 'is_active')
+            'fields': ('nombre', 'direccion', 'activo'),
         }),
     )
+
+    # Mostrar almacenes relacionados directamente desde la sucursal
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related('almacenes')
 
 
 @admin.register(Almacen)
 class AlmacenAdmin(admin.ModelAdmin):
-    """Admin de almacenes (bodegas) dentro de una sucursal"""
-
-    list_display = ('name', 'branch', 'responsible', 'is_active')
-    list_filter = ('branch', 'is_active')
-    search_fields = ('name', 'branch__nombre', 'responsible__username')
-    autocomplete_fields = ('branch', 'responsible')
-    ordering = ('branch', 'name')
-    list_editable = ('is_active',)
+    """Administración de almacenes dentro de sucursales."""
+    list_display = ('nombre', 'sucursal', 'responsable', 'activo')
+    list_filter = ('sucursal', 'activo')
+    search_fields = ('nombre', 'sucursal__nombre', 'responsable__username')
+    autocomplete_fields = ('sucursal', 'responsable')
     list_per_page = 25
-
+    ordering = ('sucursal__nombre', 'nombre')
     fieldsets = (
-        ('Información general', {
-            'fields': ('name', 'branch', 'responsible', 'is_active')
+        ('Información principal', {
+            'fields': ('nombre', 'sucursal', 'responsable', 'activo'),
         }),
     )
 
+    # Mejorar el rendimiento en list_display
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('sucursal', 'responsable')
 
-@admin.register(UserProfile)
-class UserProfileAdmin(admin.ModelAdmin):
-    """Admin para los perfiles extendidos de usuario"""
 
-    list_display = ('user', 'role', 'get_branches', 'phone')
-    list_filter = ('role', 'branch')
-    search_fields = (
-        'user__username', 'user__first_name', 'user__last_name', 'phone'
-    )
-    autocomplete_fields = ('user', 'branch')
-    ordering = ('user__username',)
+@admin.register(PerfilUsuario)
+class PerfilUsuarioAdmin(admin.ModelAdmin):
+    """Gestión de perfiles extendidos de usuario."""
+    list_display = ('usuario', 'rol', 'telefono', 'get_sucursales')
+    list_filter = ('rol',)
+    search_fields = ('usuario__username', 'usuario__first_name', 'usuario__last_name', 'telefono')
+    autocomplete_fields = ('usuario',)
+    filter_horizontal = ('sucursales',)
     list_per_page = 25
-
+    ordering = ('usuario__username',)
     fieldsets = (
-        ('Usuario vinculado', {
-            'fields': ('user', 'role', 'avatar')
+        ('Datos personales', {
+            'fields': ('usuario', 'rol', 'telefono', 'avatar'),
         }),
-        ('Datos de contacto', {
-            'fields': ('phone',)
-        }),
-        ('Sucursales asignadas', {
-            'fields': ('branch',)
+        ('Asignación organizacional', {
+            'fields': ('sucursales',),
         }),
     )
 
-    def get_branches(self, obj):
-        """Muestra las sucursales asociadas al usuario."""
-        return ", ".join([b.nombre for b in obj.branch.all()])
-    
-    get_branches.short_description = "Sucursales"
+    def get_sucursales(self, obj):
+        """Muestra las sucursales asignadas al usuario."""
+        return ", ".join([s.nombre for s in obj.sucursales.all()]) if obj.sucursales.exists() else "-"
+    get_sucursales.short_description = "Sucursales asignadas"

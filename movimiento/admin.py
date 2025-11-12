@@ -1,113 +1,144 @@
 from django.contrib import admin
 
-from .models import InventoryEntry, InventoryExit, ApprovalStep
+from .models import EntradaInventario, SalidaInventario, PasoAprobacion
 
 
-@admin.register(InventoryEntry)
-class InventoryEntryAdmin(admin.ModelAdmin):
-    """Configuración del panel para Entradas de Inventario"""
-
+@admin.register(EntradaInventario)
+class EntradaInventarioAdmin(admin.ModelAdmin):
+    """Gestión de entradas de inventario."""
     list_display = (
-        'id', 'product', 'supplier', 'entry_type', 'quantity',
-        'received_by', 'approved', 'created_at'
+        'creado', 'producto', 'cantidad', 'tipo_entrada', 'proveedor', 'recibido_por', 'aprobado'
     )
-    list_filter = ('entry_type', 'approved', 'supplier', 'created_at')
-    search_fields = ('product__name', 'product__internal_code', 'invoice_number', 'supplier__name')
-    autocomplete_fields = ('product', 'supplier', 'received_by')
-    readonly_fields = ('created_at',)
-    ordering = ('-created_at',)
-    date_hierarchy = 'created_at'
-
-    fieldsets = (
-        ('Información general', {
-            'fields': ('product', 'supplier', 'entry_type', 'invoice_number', 'quantity', 'received_by')
-        }),
-        ('Detalles adicionales', {
-            'fields': ('comments', 'approved'),
-            'classes': ('collapse',),
-        }),
-        ('Auditoría', {
-            'fields': ('created_at',),
-        }),
-    )
-
-    def save_model(self, request, obj, form, change):
-        """Aplica automáticamente la entrada al stock si se aprueba."""
-        super().save_model(request, obj, form, change)
-        if obj.approved:
-            obj.apply_to_stock()
-
-
-@admin.register(InventoryExit)
-class InventoryExitAdmin(admin.ModelAdmin):
-    """Configuración del panel para Salidas de Inventario"""
-
-    list_display = (
-        'id', 'product', 'exit_type', 'quantity', 'technician',
-        'delivered_by', 'approved', 'requires_approval', 'created_at'
-    )
-    list_filter = ('exit_type', 'approved', 'requires_approval', 'created_at')
+    list_filter = ('tipo_entrada', 'aprobado', 'creado')
     search_fields = (
-        'product__name', 'product__internal_code', 'client_name', 'technician', 'related_equipment'
+        'producto__internal_code', 'producto__description',
+        'proveedor__name', 'numero_factura'
     )
-    autocomplete_fields = ('product', 'delivered_by')
-    readonly_fields = ('created_at',)
-    ordering = ('-created_at',)
-    date_hierarchy = 'created_at'
+    autocomplete_fields = ('producto', 'proveedor', 'recibido_por')
+    readonly_fields = ('creado',)
+    list_per_page = 25
+    date_hierarchy = 'creado'
+    ordering = ('-creado',)
 
     fieldsets = (
-        ('Información general', {
+        ('Información principal', {
             'fields': (
-                'product', 'exit_type', 'quantity', 'client_name', 'technician',
-                'related_equipment', 'delivered_by', 'received_by'
-            )
+                'producto', 'proveedor', 'tipo_entrada', 'numero_factura',
+                'cantidad', 'recibido_por', 'comentarios'
+            ),
         }),
-        ('Autorización', {
-            'fields': ('requires_approval', 'approved', 'comments'),
+        ('Estado de aprobación', {
+            'fields': ('aprobado',),
         }),
         ('Auditoría', {
-            'fields': ('created_at',),
+            'fields': ('creado',),
         }),
     )
 
-    def save_model(self, request, obj, form, change):
-        """Descuenta stock automáticamente si la salida es aprobada."""
-        super().save_model(request, obj, form, change)
-        if obj.approved:
-            obj.apply_to_stock()
+    actions = ['aplicar_a_stock_action']
+
+    def aplicar_a_stock_action(self, request, queryset):
+        """Acción para aplicar múltiples entradas al stock."""
+        count = 0
+        for entrada in queryset:
+            entrada.aplicar_a_stock()
+            count += 1
+        self.message_user(request, f"{count} entradas aplicadas al stock correctamente.")
+    aplicar_a_stock_action.short_description = "Aplicar entradas seleccionadas al stock"
 
 
-@admin.register(ApprovalStep)
-class ApprovalStepAdmin(admin.ModelAdmin):
-    """Configuración del panel para los pasos de aprobación"""
-
+@admin.register(SalidaInventario)
+class SalidaInventarioAdmin(admin.ModelAdmin):
+    """Gestión de salidas de inventario."""
     list_display = (
-        'id', 'content_object', 'approver', 'step_order', 'approved', 'approved_at'
+        'creado', 'producto', 'cantidad', 'tipo_salida',
+        'nombre_cliente', 'tecnico', 'entregado_por', 'aprobado'
     )
-    list_filter = ('approved', 'approved_at')
+    list_filter = ('tipo_salida', 'requiere_aprobacion', 'aprobado', 'creado')
     search_fields = (
-        'approver__username', 'approver__first_name', 'approver__last_name',
-        'content_type__model'
+        'producto__internal_code', 'producto__description',
+        'nombre_cliente', 'tecnico'
     )
-    autocomplete_fields = ('approver',)
-    ordering = ('content_type', 'object_id', 'step_order')
+    autocomplete_fields = ('producto', 'entregado_por')
+    readonly_fields = ('creado',)
+    list_per_page = 25
+    date_hierarchy = 'creado'
+    ordering = ('-creado',)
 
     fieldsets = (
-        ('Objeto relacionado', {
-            'fields': ('content_type', 'object_id', 'content_object'),
+        ('Información principal', {
+            'fields': (
+                'producto', 'tipo_salida', 'cantidad',
+                'nombre_cliente', 'tecnico', 'equipo_asociado'
+            ),
         }),
-        ('Flujo de aprobación', {
-            'fields': ('approver', 'step_order', 'approved', 'approved_at', 'comments'),
+        ('Responsables', {
+            'fields': ('entregado_por', 'recibido_por'),
+        }),
+        ('Aprobación y comentarios', {
+            'fields': ('requiere_aprobacion', 'aprobado', 'comentarios'),
+        }),
+        ('Auditoría', {
+            'fields': ('creado',),
         }),
     )
 
-    readonly_fields = ('approved_at',)
+    actions = ['aplicar_a_stock_action']
 
-    def approve_selected(self, request, queryset):
-        """Acción personalizada para aprobar varios pasos desde el admin."""
-        for step in queryset:
-            step.approve()
-        self.message_user(request, "Pasos de aprobación marcados como aprobados correctamente.")
+    def aplicar_a_stock_action(self, request, queryset):
+        """Acción para descontar múltiples salidas del stock."""
+        exitosas, errores = 0, 0
+        for salida in queryset:
+            try:
+                salida.aplicar_a_stock()
+                exitosas += 1
+            except ValueError:
+                errores += 1
+        msg = f"{exitosas} salidas aplicadas al stock correctamente."
+        if errores:
+            msg += f" {errores} no se aplicaron por falta de stock."
+        self.message_user(request, msg)
+    aplicar_a_stock_action.short_description = "Aplicar salidas seleccionadas al stock"
+
+
+@admin.register(PasoAprobacion)
+class PasoAprobacionAdmin(admin.ModelAdmin):
+    """Flujo de aprobación genérico para entradas/salidas."""
+    list_display = (
+        'content_type', 'object_id', 'user_aprueba',
+        'paso', 'aprobado', 'aprobado_fecha', 'short_comentarios'
+    )
+    list_filter = ('aprobado', 'content_type', 'aprobado_fecha')
+    search_fields = (
+        'user_aprueba__username', 'comentarios',
+        'content_type__model', 'object_id'
+    )
+    autocomplete_fields = ('user_aprueba',)
+    readonly_fields = ('aprobado_fecha',)
+    ordering = ('content_type', 'object_id', 'paso')
+    list_per_page = 30
+
+    fieldsets = (
+        ('Información del flujo', {
+            'fields': ('content_type', 'object_id', 'user_aprueba', 'paso'),
+        }),
+        ('Estado y comentarios', {
+            'fields': ('aprobado', 'aprobado_fecha', 'comentarios'),
+        }),
+    )
 
     actions = ['approve_selected']
+
+    def short_comentarios(self, obj):
+        """Texto abreviado de comentarios."""
+        return (obj.comentarios[:60] + '...') if obj.comentarios and len(obj.comentarios) > 60 else obj.comentarios
+    short_comentarios.short_description = "Comentarios"
+
+    def approve_selected(self, request, queryset):
+        """Acción para aprobar pasos en lote."""
+        count = 0
+        for paso in queryset.filter(aprobado=False):
+            paso.approve()
+            count += 1
+        self.message_user(request, f"{count} pasos aprobados correctamente.")
     approve_selected.short_description = "Marcar pasos seleccionados como aprobados"
