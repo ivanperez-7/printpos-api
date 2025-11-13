@@ -1,8 +1,4 @@
-import os
-from datetime import timedelta
-
 from django.conf import settings
-from django.contrib.auth import authenticate
 from django.middleware.csrf import get_token
 from django.urls import reverse
 from rest_framework import status

@@ -13,5 +13,5 @@ urlpatterns = [
     path('api/v1/movimientos/', include('movimiento.urls')),
 ]
 
-admin.site.site_header = "PrintPOS DB"
-admin.site.site_title = "PrintPOS DB"
+admin.site.site_header = 'PrintPOS DB'
+admin.site.site_title = 'PrintPOS DB'

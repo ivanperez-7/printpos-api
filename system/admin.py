@@ -5,7 +5,7 @@ from .models import ConfiguracionSistema, RegistroActividad, AlertaInventario
 
 @admin.register(ConfiguracionSistema)
 class ConfiguracionSistemaAdmin(admin.ModelAdmin):
-    """Admin para las configuraciones globales del sistema."""
+    '''Admin para las configuraciones globales del sistema.'''
     list_display = ('clave', 'valor_resumido', 'actualizado')
     search_fields = ('clave', 'valor', 'descripcion')
     list_per_page = 25
@@ -13,12 +13,12 @@ class ConfiguracionSistemaAdmin(admin.ModelAdmin):
 
     def valor_resumido(self, obj):
         return (obj.valor[:50] + '...') if obj.valor and len(obj.valor) > 50 else obj.valor
-    valor_resumido.short_description = "Valor"
+    valor_resumido.short_description = 'Valor'
 
 
 @admin.register(RegistroActividad)
 class RegistroActividadAdmin(admin.ModelAdmin):
-    """Admin para el historial de acciones del sistema."""
+    '''Admin para el historial de acciones del sistema.'''
     list_display = ('usuario', 'descripcion_resumida', 'creado')
     list_filter = ('accion', 'usuario')
     search_fields = ('usuario__username', 'descripcion')
@@ -29,12 +29,12 @@ class RegistroActividadAdmin(admin.ModelAdmin):
 
     def descripcion_resumida(self, obj):
         return (obj.descripcion[:60] + '...') if len(obj.descripcion) > 60 else obj.descripcion
-    descripcion_resumida.short_description = "Descripción"
+    descripcion_resumida.short_description = 'Descripción'
 
 
 @admin.register(AlertaInventario)
 class AlertaInventarioAdmin(admin.ModelAdmin):
-    """Admin para la gestión de alertas automáticas del inventario."""
+    '''Admin para la gestión de alertas automáticas del inventario.'''
     list_display = ('producto', 'mensaje_resumido', 'resuelto', 'creado')
     list_filter = ('tipo_alerta', 'resuelto')
     search_fields = ('producto__codigo_interno', 'mensaje')
@@ -44,5 +44,5 @@ class AlertaInventarioAdmin(admin.ModelAdmin):
 
     def mensaje_resumido(self, obj):
         return (obj.mensaje[:60] + '...') if len(obj.mensaje) > 60 else obj.mensaje
-    mensaje_resumido.short_description = "Mensaje"
+    mensaje_resumido.short_description = 'Mensaje'
 

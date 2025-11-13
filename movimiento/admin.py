@@ -5,7 +5,7 @@ from .models import EntradaInventario, SalidaInventario, PasoAprobacion
 
 @admin.register(EntradaInventario)
 class EntradaInventarioAdmin(admin.ModelAdmin):
-    """Gestión de entradas de inventario."""
+    'Gestión de entradas de inventario.'
     list_display = (
         'creado', 'producto', 'cantidad', 'tipo_entrada', 'proveedor', 'recibido_por', 'aprobado'
     )
@@ -38,18 +38,18 @@ class EntradaInventarioAdmin(admin.ModelAdmin):
     actions = ['aplicar_a_stock_action']
 
     def aplicar_a_stock_action(self, request, queryset):
-        """Acción para aplicar múltiples entradas al stock."""
+        'Acción para aplicar múltiples entradas al stock.'
         count = 0
         for entrada in queryset:
             entrada.aplicar_a_stock()
             count += 1
-        self.message_user(request, f"{count} entradas aplicadas al stock correctamente.")
-    aplicar_a_stock_action.short_description = "Aplicar entradas seleccionadas al stock"
+        self.message_user(request, f'{count} entradas aplicadas al stock correctamente.')
+    aplicar_a_stock_action.short_description = 'Aplicar entradas seleccionadas al stock'
 
 
 @admin.register(SalidaInventario)
 class SalidaInventarioAdmin(admin.ModelAdmin):
-    """Gestión de salidas de inventario."""
+    'Gestión de salidas de inventario.'
     list_display = (
         'creado', 'producto', 'cantidad', 'tipo_salida',
         'nombre_cliente', 'tecnico', 'entregado_por', 'aprobado'
@@ -86,7 +86,7 @@ class SalidaInventarioAdmin(admin.ModelAdmin):
     actions = ['aplicar_a_stock_action']
 
     def aplicar_a_stock_action(self, request, queryset):
-        """Acción para descontar múltiples salidas del stock."""
+        'Acción para descontar múltiples salidas del stock.'
         exitosas, errores = 0, 0
         for salida in queryset:
             try:
@@ -94,16 +94,16 @@ class SalidaInventarioAdmin(admin.ModelAdmin):
                 exitosas += 1
             except ValueError:
                 errores += 1
-        msg = f"{exitosas} salidas aplicadas al stock correctamente."
+        msg = f'{exitosas} salidas aplicadas al stock correctamente.'
         if errores:
-            msg += f" {errores} no se aplicaron por falta de stock."
+            msg += f' {errores} no se aplicaron por falta de stock.'
         self.message_user(request, msg)
-    aplicar_a_stock_action.short_description = "Aplicar salidas seleccionadas al stock"
+    aplicar_a_stock_action.short_description = 'Aplicar salidas seleccionadas al stock'
 
 
 @admin.register(PasoAprobacion)
 class PasoAprobacionAdmin(admin.ModelAdmin):
-    """Flujo de aprobación genérico para entradas/salidas."""
+    'Flujo de aprobación genérico para entradas/salidas.'
     list_display = (
         'entrada', 'salida', 'user_aprueba',
         'paso', 'aprobado', 'aprobado_fecha', 'short_comentarios'
@@ -129,15 +129,15 @@ class PasoAprobacionAdmin(admin.ModelAdmin):
     actions = ['approve_selected']
 
     def short_comentarios(self, obj):
-        """Texto abreviado de comentarios."""
+        'Texto abreviado de comentarios.'
         return (obj.comentarios[:60] + '...') if obj.comentarios and len(obj.comentarios) > 60 else obj.comentarios
-    short_comentarios.short_description = "Comentarios"
+    short_comentarios.short_description = 'Comentarios'
 
     def approve_selected(self, request, queryset):
-        """Acción para aprobar pasos en lote."""
+        'Acción para aprobar pasos en lote.'
         count = 0
         for paso in queryset.filter(aprobado=False):
             paso.approve()
             count += 1
-        self.message_user(request, f"{count} pasos aprobados correctamente.")
-    approve_selected.short_description = "Marcar pasos seleccionados como aprobados"
+        self.message_user(request, f'{count} pasos aprobados correctamente.')
+    approve_selected.short_description = 'Marcar pasos seleccionados como aprobados'

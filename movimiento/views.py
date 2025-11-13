@@ -30,10 +30,10 @@ class PasoAprobacionViewSet(viewsets.ModelViewSet):
 
 @api_view(['GET'])
 def main_movements_table(request):
-    """
+    '''
     Vista para obtener los datos combinados de entradas y salidas de inventario
     para mostrar en una tabla principal.
-    """
+    '''
     entradas = EntradaInventario.objects.all()
     salidas = SalidaInventario.objects.all()
 

@@ -5,7 +5,7 @@ from productos.models import Producto
 
 
 class ConfiguracionSistema(models.Model):
-    """Parámetros configurables del sistema (clave-valor)."""
+    '''Parámetros configurables del sistema (clave-valor).'''
     clave = models.CharField(max_length=100, unique=True)
     valor = models.TextField(blank=True, null=True)
     descripcion = models.TextField(blank=True, null=True)
@@ -20,7 +20,7 @@ class ConfiguracionSistema(models.Model):
 
 
 class RegistroActividad(models.Model):
-    """Historial de acciones realizadas en el sistema."""
+    '''Historial de acciones realizadas en el sistema.'''
 
     ACCIONES = [
         ('create', 'Creación'),
@@ -46,7 +46,7 @@ class RegistroActividad(models.Model):
 
 
 class AlertaInventario(models.Model):
-    """Alertas automáticas generadas por el sistema de inventario."""
+    '''Alertas automáticas generadas por el sistema de inventario.'''
     TIPOS_ALERTA = [
         ('low_stock', 'Bajo stock'),
         ('old_product', 'Producto antiguo'),

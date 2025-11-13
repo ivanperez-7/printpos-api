@@ -2,7 +2,7 @@ from drf_writable_nested import NestedUpdateMixin, WritableNestedModelSerializer
 
 
 class CustomWritableNestedModelSerializer(WritableNestedModelSerializer):
-    """ Necesario porque la clase original no soporta unique_together. """
+    ''' Necesario porque la clase original no soporta unique_together. '''
     def update(self, instance, validated_data):
         relations, reverse_relations = self._extract_relations(validated_data)
 
