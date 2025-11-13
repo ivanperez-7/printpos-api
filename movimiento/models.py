@@ -20,8 +20,11 @@ class EntradaInventario(models.Model):
     cantidad = models.PositiveIntegerField(verbose_name='Cantidad ingresada')
     recibido_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='entradas_recibidas')
 
+    user_aprueba = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='aprobaciones_entradas')
+    aprobado = models.BooleanField(default=False)
+    aprobado_fecha = models.DateTimeField(blank=True, null=True)
+
     comentarios = models.TextField(blank=True, null=True)
-    aprobado = models.BooleanField(default=True)  # True por defecto para entradas simples
     creado = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -36,6 +39,13 @@ class EntradaInventario(models.Model):
         '''Aumenta el stock del producto según la cantidad.'''
         self.producto.cantidad_disponible += self.cantidad
         self.producto.save()
+    
+    def approve(self, user: User):
+        '''Marca el paso como aprobado.'''
+        self.aprobado = True
+        self.aprobado_fecha = timezone.now()
+        self.user_aprueba = user
+        self.save()
 
 
 class SalidaInventario(models.Model):
@@ -58,9 +68,11 @@ class SalidaInventario(models.Model):
     recibido_por = models.CharField(max_length=100, blank=True, null=True, verbose_name='Recibido por')
 
     requiere_aprobacion = models.BooleanField(default=False)
+    user_aprueba = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='aprobaciones_salidas')
     aprobado = models.BooleanField(default=False)
-    comentarios = models.TextField(blank=True, null=True)
+    aprobado_fecha = models.DateTimeField(blank=True, null=True)
 
+    comentarios = models.TextField(blank=True, null=True)
     creado = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -78,47 +90,10 @@ class SalidaInventario(models.Model):
             self.producto.save()
         else:
             raise ValueError('Stock insuficiente para realizar la salida.')
-
-
-class PasoAprobacion(models.Model):
-    '''Flujo de aprobación configurable para cualquier tipo de objeto (entrada, salida, etc.)'''
-
-    entrada = models.ForeignKey(
-        EntradaInventario,
-        on_delete=models.CASCADE,
-        blank=True,
-        null=True,
-        related_name='pasos_aprobacion'
-    )
-    salida = models.ForeignKey(
-        SalidaInventario,
-        on_delete=models.CASCADE,
-        blank=True,
-        null=True,
-        related_name='pasos_aprobacion'
-    )
-
-    user_aprueba = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='pasos_aprobacion')
-    paso = models.PositiveIntegerField(default=1)
-    aprobado = models.BooleanField(default=False)
-    aprobado_fecha = models.DateTimeField(blank=True, null=True)
-    comentarios = models.TextField(blank=True, null=True)
-
-    class Meta:
-        verbose_name = 'Paso de aprobación'
-        verbose_name_plural = 'Flujo de aprobaciones'
-        ordering = ['paso']
-
-    def __str__(self):
-        return f'Aprobación {self.paso} para {self.entrada or self.salida}'
     
-    def save(self, *args, **kwargs):
-        if self.entrada and self.salida:
-            raise ValueError('Un PasoAprobacion no puede estar asociado a una entrada y una salida al mismo tiempo.')
-        super().save(*args, **kwargs)
-
-    def approve(self):
+    def approve(self, user: User):
         '''Marca el paso como aprobado.'''
         self.aprobado = True
         self.aprobado_fecha = timezone.now()
+        self.user_aprueba = user
         self.save()

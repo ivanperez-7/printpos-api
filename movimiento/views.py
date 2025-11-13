@@ -2,13 +2,12 @@ from rest_framework import viewsets
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from .models import EntradaInventario, SalidaInventario, PasoAprobacion
-from .serializers import EntradaInventarioSerializer, SalidaInventarioSerializer, PasoAprobacionSerializer
+from .models import EntradaInventario, SalidaInventario
+from .serializers import EntradaInventarioSerializer, SalidaInventarioSerializer
 
 __all__ = [
     'EntradaInventarioViewSet',
     'SalidaInventarioViewSet',
-    'PasoAprobacionViewSet',
     'main_movements_table'
 ]
 
@@ -21,11 +20,6 @@ class EntradaInventarioViewSet(viewsets.ModelViewSet):
 class SalidaInventarioViewSet(viewsets.ModelViewSet):
     queryset = SalidaInventario.objects.all()
     serializer_class = SalidaInventarioSerializer
-
-
-class PasoAprobacionViewSet(viewsets.ModelViewSet):
-    queryset = PasoAprobacion.objects.all()
-    serializer_class = PasoAprobacionSerializer
 
 
 @api_view(['GET'])

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import EntradaInventario, SalidaInventario, PasoAprobacion
+from .models import EntradaInventario, SalidaInventario
 from productos.serializers import ProductoSerializer
 
 
@@ -40,10 +40,3 @@ class SalidaInventarioSerializer(serializers.ModelSerializer):
         model = SalidaInventario
         fields = '__all__'
         read_only_fields = ['id', 'creado']
-
-
-class PasoAprobacionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = PasoAprobacion
-        fields = '__all__'
-        read_only_fields = ['id', 'aprobado_fecha']

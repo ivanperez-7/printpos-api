@@ -7,7 +7,6 @@ from .views import *
 router = DefaultRouter()
 router.register(r'entradas', EntradaInventarioViewSet, basename='entrada-inventario')
 router.register(r'salidas', SalidaInventarioViewSet, basename='salida-inventario')
-router.register(r'aprobaciones', PasoAprobacionViewSet, basename='paso-aprobacion')
 
 urlpatterns = [
     path('', include(router.urls)),

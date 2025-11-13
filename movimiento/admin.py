@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import EntradaInventario, SalidaInventario, PasoAprobacion
+from .models import EntradaInventario, SalidaInventario
 
 
 @admin.register(EntradaInventario)
@@ -99,45 +99,3 @@ class SalidaInventarioAdmin(admin.ModelAdmin):
             msg += f' {errores} no se aplicaron por falta de stock.'
         self.message_user(request, msg)
     aplicar_a_stock_action.short_description = 'Aplicar salidas seleccionadas al stock'
-
-
-@admin.register(PasoAprobacion)
-class PasoAprobacionAdmin(admin.ModelAdmin):
-    'Flujo de aprobación genérico para entradas/salidas.'
-    list_display = (
-        'entrada', 'salida', 'user_aprueba',
-        'paso', 'aprobado', 'aprobado_fecha', 'short_comentarios'
-    )
-    list_filter = ('aprobado', 'aprobado_fecha')
-    search_fields = (
-        'user_aprueba__username', 'comentarios',
-    )
-    autocomplete_fields = ('user_aprueba',)
-    readonly_fields = ('aprobado_fecha',)
-    ordering = ('entrada', 'salida', 'paso')
-    list_per_page = 30
-
-    fieldsets = (
-        ('Información del flujo', {
-            'fields': ('entrada', 'salida', 'user_aprueba', 'paso'),
-        }),
-        ('Estado y comentarios', {
-            'fields': ('aprobado', 'aprobado_fecha', 'comentarios'),
-        }),
-    )
-
-    actions = ['approve_selected']
-
-    def short_comentarios(self, obj):
-        'Texto abreviado de comentarios.'
-        return (obj.comentarios[:60] + '...') if obj.comentarios and len(obj.comentarios) > 60 else obj.comentarios
-    short_comentarios.short_description = 'Comentarios'
-
-    def approve_selected(self, request, queryset):
-        'Acción para aprobar pasos en lote.'
-        count = 0
-        for paso in queryset.filter(aprobado=False):
-            paso.approve()
-            count += 1
-        self.message_user(request, f'{count} pasos aprobados correctamente.')
-    approve_selected.short_description = 'Marcar pasos seleccionados como aprobados'
