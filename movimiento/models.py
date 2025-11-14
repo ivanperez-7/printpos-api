@@ -36,12 +36,12 @@ class EntradaInventario(models.Model):
         return f'Entrada {self.producto.codigo_interno} ({self.cantidad}) - {self.creado.strftime("%Y-%m-%d")}'
 
     def aplicar_a_stock(self):
-        '''Aumenta el stock del producto según la cantidad.'''
+        """Aumenta el stock del producto según la cantidad."""
         self.producto.cantidad_disponible += self.cantidad
         self.producto.save()
     
     def approve(self, user: User):
-        '''Marca el paso como aprobado.'''
+        """Marca el paso como aprobado."""
         self.aprobado = True
         self.aprobado_fecha = timezone.now()
         self.user_aprueba = user
@@ -84,7 +84,7 @@ class SalidaInventario(models.Model):
         return f'Salida {self.producto.codigo_interno} ({self.cantidad}) - {self.creado.strftime("%Y-%m-%d")}'
 
     def aplicar_a_stock(self):
-        '''Reduce el stock del producto según la cantidad.'''
+        """Reduce el stock del producto según la cantidad."""
         if self.producto.cantidad_disponible >= self.cantidad:
             self.producto.cantidad_disponible -= self.cantidad
             self.producto.save()
@@ -92,7 +92,7 @@ class SalidaInventario(models.Model):
             raise ValueError('Stock insuficiente para realizar la salida.')
     
     def approve(self, user: User):
-        '''Marca el paso como aprobado.'''
+        """Marca el paso como aprobado."""
         self.aprobado = True
         self.aprobado_fecha = timezone.now()
         self.user_aprueba = user

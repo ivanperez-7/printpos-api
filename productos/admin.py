@@ -4,7 +4,7 @@ from .models import Marca, Categoría, Proveedor, Producto
 
 @admin.register(Marca)
 class MarcaAdmin(admin.ModelAdmin):
-    '''Administración de marcas.'''
+    """Administración de marcas."""
     list_display = ('nombre', 'descripcion_resumida')
     search_fields = ('nombre',)
     ordering = ('nombre',)
@@ -17,7 +17,7 @@ class MarcaAdmin(admin.ModelAdmin):
 
 @admin.register(Categoría)
 class CategoriaAdmin(admin.ModelAdmin):
-    '''Administración de categorías de productos.'''
+    """Administración de categorías de productos."""
     list_display = ('nombre', 'descripcion_resumida')
     search_fields = ('nombre',)
     ordering = ('nombre',)
@@ -30,7 +30,7 @@ class CategoriaAdmin(admin.ModelAdmin):
 
 @admin.register(Proveedor)
 class ProveedorAdmin(admin.ModelAdmin):
-    '''Gestión de proveedores.'''
+    """Gestión de proveedores."""
     list_display = ('nombre', 'nombre_contacto', 'telefono', 'correo', 'activo')
     list_filter = ('activo',)
     search_fields = ('nombre', 'nombre_contacto', 'telefono', 'correo')
@@ -48,7 +48,7 @@ class ProveedorAdmin(admin.ModelAdmin):
 
 @admin.register(Producto)
 class ProductoAdmin(admin.ModelAdmin):
-    '''Gestión del catálogo de productos.'''
+    """Gestión del catálogo de productos."""
     list_display = (
         'codigo_interno', 'descripcion', 'categoria', 'marca', 'proveedor',
         'cantidad_disponible', 'min_stock', 'unidad', 'precio_venta',

@@ -2,8 +2,8 @@ from rest_framework.response import Response
 
 
 class GetWithOrmMixin:
-    ''' Para obtener uno o varios objetos (list o retrieve) con el ORM de Django.
-        Requiere que el ModelViewSet tenga los atributos `serializer_class` y `orm_fields`.  '''
+    """ Para obtener uno o varios objetos (list o retrieve) con el ORM de Django.
+        Requiere que el ModelViewSet tenga los atributos `serializer_class` y `orm_fields`.  """
 
     def list(self, request, *args, **kwargs):
         try:

@@ -5,7 +5,7 @@ from .models import Sucursal, Almacen, PerfilUsuario
 
 @admin.register(Sucursal)
 class SucursalAdmin(admin.ModelAdmin):
-    '''Administración de sucursales.'''
+    """Administración de sucursales."""
     list_display = ('nombre', 'direccion', 'activo')
     search_fields = ('nombre', 'direccion')
     list_filter = ('activo',)
@@ -24,7 +24,7 @@ class SucursalAdmin(admin.ModelAdmin):
 
 @admin.register(Almacen)
 class AlmacenAdmin(admin.ModelAdmin):
-    '''Administración de almacenes dentro de sucursales.'''
+    """Administración de almacenes dentro de sucursales."""
     list_display = ('nombre', 'sucursal', 'responsable', 'activo')
     list_filter = ('sucursal', 'activo')
     search_fields = ('nombre', 'sucursal__nombre', 'responsable__username')
@@ -44,7 +44,7 @@ class AlmacenAdmin(admin.ModelAdmin):
 
 @admin.register(PerfilUsuario)
 class PerfilUsuarioAdmin(admin.ModelAdmin):
-    '''Gestión de perfiles extendidos de usuario.'''
+    """Gestión de perfiles extendidos de usuario."""
     list_display = ('usuario', 'rol', 'telefono', 'get_sucursales')
     list_filter = ('rol',)
     search_fields = ('usuario__username', 'usuario__first_name', 'usuario__last_name', 'telefono')
@@ -62,6 +62,6 @@ class PerfilUsuarioAdmin(admin.ModelAdmin):
     )
 
     def get_sucursales(self, obj):
-        '''Muestra las sucursales asignadas al usuario.'''
+        """Muestra las sucursales asignadas al usuario."""
         return ', '.join([s.nombre for s in obj.sucursales.all()]) if obj.sucursales.exists() else '-'
     get_sucursales.short_description = 'Sucursales asignadas'

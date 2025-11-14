@@ -5,11 +5,7 @@ from rest_framework.response import Response
 from .models import EntradaInventario, SalidaInventario
 from .serializers import EntradaInventarioSerializer, SalidaInventarioSerializer
 
-__all__ = [
-    'EntradaInventarioViewSet',
-    'SalidaInventarioViewSet',
-    'main_movements_table'
-]
+__all__ = ['EntradaInventarioViewSet', 'SalidaInventarioViewSet', 'main_movements_table']
 
 
 class EntradaInventarioViewSet(viewsets.ModelViewSet):
@@ -24,12 +20,23 @@ class SalidaInventarioViewSet(viewsets.ModelViewSet):
 
 @api_view(['GET'])
 def main_movements_table(request):
-    '''
+    """
     Vista para obtener los datos combinados de entradas y salidas de inventario
     para mostrar en una tabla principal.
-    '''
+    """
     entradas = EntradaInventario.objects.all()
     salidas = SalidaInventario.objects.all()
+
+    if filters := {
+        k: v
+        for k, v in {
+            'producto_id': request.query_params.get('producto'),
+            'user_aprueba_id': request.query_params.get('user_aprueba'),
+        }.items()
+        if v is not None
+    }:
+        entradas = entradas.filter(**filters)
+        salidas = salidas.filter(**filters)
 
     entrada_serializer = EntradaInventarioSerializer(entradas, many=True)
     salida_serializer = SalidaInventarioSerializer(salidas, many=True)

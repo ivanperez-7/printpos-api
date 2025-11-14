@@ -83,10 +83,10 @@ class Producto(models.Model):
 
     @property
     def stock_bajo(self):
-        '''Devuelve True si el producto está por debajo del stock mínimo.'''
+        """Devuelve True si el producto está por debajo del stock mínimo."""
         return self.cantidad_disponible <= self.min_stock
 
     @property
     def edad_en_dias(self):
-        '''Días desde la creación del registro (para alertas de antigüedad).'''
+        """Días desde la creación del registro (para alertas de antigüedad)."""
         return (timezone.now().date() - self.creado.date()).days

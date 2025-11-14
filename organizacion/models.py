@@ -16,7 +16,7 @@ class Sucursal(models.Model):
     
 
 class Almacen(models.Model):
-    '''Almacén físico dentro de una sucursal'''
+    """Almacén físico dentro de una sucursal"""
     nombre = models.CharField(max_length=100)
     sucursal = models.ForeignKey(Sucursal, on_delete=models.CASCADE, related_name='almacenes')
     responsable = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
@@ -32,7 +32,7 @@ class Almacen(models.Model):
 
 
 class PerfilUsuario(models.Model):
-    '''Extiende la información del usuario (rol, sucursal, etc.)'''
+    """Extiende la información del usuario (rol, sucursal, etc.)"""
     ROLE_CHOICES = [
         ('admin', 'Administrador'),
         ('operativo', 'Operativo'),
