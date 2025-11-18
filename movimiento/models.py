@@ -42,6 +42,8 @@ class EntradaInventario(models.Model):
     
     def approve(self, user: User):
         """Marca el paso como aprobado."""
+        if user.profile.role != 'admin':
+            raise PermissionError('Solo los administradores pueden aprobar entradas de inventario.')
         self.aprobado = True
         self.aprobado_fecha = timezone.now()
         self.user_aprueba = user
@@ -93,6 +95,8 @@ class SalidaInventario(models.Model):
     
     def approve(self, user: User):
         """Marca el paso como aprobado."""
+        if user.profile.role != 'admin':
+            raise PermissionError('Solo los administradores pueden aprobar salidas de inventario.')
         self.aprobado = True
         self.aprobado_fecha = timezone.now()
         self.user_aprueba = user

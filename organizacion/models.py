@@ -13,22 +13,6 @@ class Sucursal(models.Model):
 
     def __str__(self):
         return f'{self.nombre} ({self.empresa.nombre})'
-    
-
-class Almacen(models.Model):
-    """Almacén físico dentro de una sucursal"""
-    nombre = models.CharField(max_length=100)
-    sucursal = models.ForeignKey(Sucursal, on_delete=models.CASCADE, related_name='almacenes')
-    responsable = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-    activo = models.BooleanField(default=True)
-
-    class Meta:
-        verbose_name = 'Almacén'
-        verbose_name_plural = 'Almacenes'
-        unique_together = ('nombre', 'sucursal')
-
-    def __str__(self):
-        return f'{self.nombre} ({self.sucursal.nombre})'
 
 
 class PerfilUsuario(models.Model):
