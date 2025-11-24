@@ -7,14 +7,13 @@ from .models import EntradaInventario, SalidaInventario
 class EntradaInventarioAdmin(admin.ModelAdmin):
     'Gestión de entradas de inventario.'
     list_display = (
-        'creado', 'producto', 'cantidad', 'tipo_entrada', 'proveedor', 'recibido_por', 'aprobado'
+        'creado', 'producto', 'cantidad', 'tipo_entrada', 'recibido_por', 'aprobado'
     )
     list_filter = ('tipo_entrada', 'aprobado', 'creado')
     search_fields = (
-        'producto__internal_code', 'producto__description',
-        'proveedor__name', 'numero_factura'
+        'producto__internal_code', 'producto__description', 'numero_factura'
     )
-    autocomplete_fields = ('producto', 'proveedor', 'recibido_por')
+    autocomplete_fields = ('producto', 'recibido_por')
     readonly_fields = ('creado',)
     list_per_page = 25
     date_hierarchy = 'creado'
@@ -23,7 +22,7 @@ class EntradaInventarioAdmin(admin.ModelAdmin):
     fieldsets = (
         ('Información principal', {
             'fields': (
-                'producto', 'proveedor', 'tipo_entrada', 'numero_factura',
+                'producto', 'tipo_entrada', 'numero_factura',
                 'cantidad', 'recibido_por', 'comentarios'
             ),
         }),
@@ -69,7 +68,7 @@ class SalidaInventarioAdmin(admin.ModelAdmin):
         ('Información principal', {
             'fields': (
                 'producto', 'tipo_salida', 'cantidad',
-                'nombre_cliente', 'tecnico', 'equipo_asociado'
+                'nombre_cliente', 'tecnico',
             ),
         }),
         ('Responsables', {

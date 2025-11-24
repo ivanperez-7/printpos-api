@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
 
-from productos.models import Producto, Proveedor
+from productos.models import Producto
 
 
 class EntradaInventario(models.Model):
@@ -13,17 +13,15 @@ class EntradaInventario(models.Model):
     ]
 
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name='entradas')
-    proveedor = models.ForeignKey(Proveedor, on_delete=models.SET_NULL, null=True, blank=True)
     tipo_entrada = models.CharField(max_length=20, choices=ENTRY_TYPES, default='compra')
 
-    numero_factura = models.CharField(max_length=100, blank=True, null=True, verbose_name='Factura / Orden de compra')
+    numero_factura = models.CharField(max_length=100, verbose_name='Factura / Orden de compra')
     cantidad = models.PositiveIntegerField(verbose_name='Cantidad ingresada')
-    recibido_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='entradas_recibidas')
+    recibido_por = models.ForeignKey(User, on_delete=models.PROTECT, related_name='entradas_recibidas')
 
     user_aprueba = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='aprobaciones_entradas')
     aprobado = models.BooleanField(default=False)
     aprobado_fecha = models.DateTimeField(blank=True, null=True)
-
     comentarios = models.TextField(blank=True, null=True)
     creado = models.DateTimeField(default=timezone.now)
 
@@ -56,17 +54,16 @@ class SalidaInventario(models.Model):
         ('rental', 'Equipo en renta'),
         ('internal', 'Uso interno'),
         ('adjustment', 'Ajuste de inventario'),
-    ]
 
+    ]
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name='salidas')
     tipo_salida = models.CharField(max_length=20, choices=EXIT_TYPES, default='project')
 
-    nombre_cliente = models.CharField(max_length=150, blank=True, null=True)
+    nombre_cliente = models.CharField(max_length=150)
     tecnico = models.CharField(max_length=100, blank=True, null=True, verbose_name='Técnico responsable')
-    equipo_asociado = models.CharField(max_length=150, blank=True, null=True, verbose_name='Equipo asociado')
 
     cantidad = models.PositiveIntegerField(verbose_name='Cantidad entregada')
-    entregado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='salidas_entregadas')
+    entregado_por = models.ForeignKey(User, on_delete=models.PROTECT, related_name='salidas_entregadas')
     recibido_por = models.CharField(max_length=100, blank=True, null=True, verbose_name='Recibido por')
 
     requiere_aprobacion = models.BooleanField(default=False)

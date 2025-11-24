@@ -1,10 +1,23 @@
 from django.contrib import admin
-from .models import Marca, Categoría, Proveedor, Producto
+from .models import Marca, Categoría, Proveedor, Producto, Equipo
 
 
 @admin.register(Marca)
 class MarcaAdmin(admin.ModelAdmin):
     """Administración de marcas."""
+    list_display = ('nombre', 'descripcion_resumida')
+    search_fields = ('nombre',)
+    ordering = ('nombre',)
+    list_per_page = 25
+
+    def descripcion_resumida(self, obj):
+        return (obj.descripcion[:50] + '...') if obj.descripcion and len(obj.descripcion) > 50 else obj.descripcion
+    descripcion_resumida.short_description = 'Descripción'
+
+
+@admin.register(Equipo)
+class EquipoAdmin(admin.ModelAdmin):
+    """Administración de equpos."""
     list_display = ('nombre', 'descripcion_resumida')
     search_fields = ('nombre',)
     ordering = ('nombre',)
@@ -50,19 +63,19 @@ class ProveedorAdmin(admin.ModelAdmin):
 class ProductoAdmin(admin.ModelAdmin):
     """Gestión del catálogo de productos."""
     list_display = (
-        'codigo_interno', 'descripcion', 'categoria', 'marca', 'proveedor',
+        'codigo_interno', 'descripcion', 'categoria', 'equipo', 'proveedor',
         'cantidad_disponible', 'min_stock', 'unidad', 'precio_venta',
     )
-    list_filter = ('categoria', 'marca', 'status')
-    search_fields = ('codigo_interno', 'descripcion', 'nombre_modelo', 'serie_lote')
-    autocomplete_fields = ('categoria', 'marca', 'proveedor')
+    list_filter = ('categoria', 'equipo__marca', 'status')
+    search_fields = ('codigo_interno', 'descripcion', 'serie_lote')
+    autocomplete_fields = ('categoria', 'equipo', 'proveedor')
     list_per_page = 25
-    ordering = ('marca__nombre', 'descripcion')
+    ordering = ('equipo__nombre', 'descripcion')
 
     readonly_fields = ('creado', 'actualizado')
     fieldsets = (
         ('Identificación y descripción', {
-            'fields': ('codigo_interno', 'descripcion', 'categoria', 'marca', 'nombre_modelo', 'serie_lote')
+            'fields': ('codigo_interno', 'descripcion', 'categoria', 'equipo', 'serie_lote')
         }),
         ('Inventario', {
             'fields': ('cantidad_disponible', 'min_stock', 'unidad')
@@ -79,5 +92,5 @@ class ProductoAdmin(admin.ModelAdmin):
         return (
             super()
             .get_queryset(request)
-            .select_related('categoria', 'marca', 'proveedor')
+            .select_related('categoria', 'equipo', 'proveedor')
         )

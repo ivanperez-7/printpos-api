@@ -15,6 +15,20 @@ class Marca(models.Model):
         return self.nombre
 
 
+class Equipo(models.Model):
+    nombre = models.CharField(max_length=100, unique=True)
+    descripcion = models.TextField(blank=True, null=True)
+    marca = models.ForeignKey(Marca, on_delete=models.CASCADE, related_name='equipos')
+
+    class Meta:
+        verbose_name = 'Equipo'
+        verbose_name_plural = 'Equipos'
+        ordering = ['nombre']
+
+    def __str__(self):
+        return f'{self.nombre} ({self.marca.nombre})'
+
+
 class Categoría(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
     descripcion = models.TextField(blank=True, null=True)
@@ -54,10 +68,9 @@ class Producto(models.Model):
 
     codigo_interno = models.CharField(max_length=50, unique=True, verbose_name='Código interno')
     descripcion = models.CharField(max_length=255, verbose_name='Descripción')
-    categoria = models.ForeignKey(Categoría, on_delete=models.SET_NULL, null=True, related_name='productos')
-    marca = models.ForeignKey(Marca, on_delete=models.SET_NULL, null=True, related_name='productos')
-    nombre_modelo = models.CharField(max_length=100, blank=True, null=True, verbose_name='Modelo')
-    serie_lote = models.CharField(max_length=100, blank=True, null=True, verbose_name='Número de serie/lote')
+    categoria = models.ForeignKey(Categoría, on_delete=models.PROTECT, related_name='productos')
+    equipo = models.ForeignKey(Equipo, on_delete=models.PROTECT, related_name='productos')
+    serie_lote = models.CharField(max_length=100, verbose_name='Número de serie/lote')
 
     cantidad_disponible = models.PositiveIntegerField(default=0, verbose_name='Cantidad disponible')
     min_stock = models.PositiveIntegerField(default=0, verbose_name='Stock mínimo')
@@ -76,7 +89,7 @@ class Producto(models.Model):
     class Meta:
         verbose_name = 'Producto'
         verbose_name_plural = 'Productos'
-        ordering = ['marca__nombre', 'descripcion']
+        ordering = ['equipo__marca__nombre', 'equipo__nombre', 'descripcion']
 
     def __str__(self):
         return f'{self.codigo_interno} - {self.descripcion}'
