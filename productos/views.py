@@ -5,7 +5,7 @@ from .serializers import ProductoSerializer, CategoriaSerializer, MarcaSerialize
 
 
 class ProductoViewSet(viewsets.ModelViewSet):
-    queryset = Producto.objects.all()
+    queryset = Producto.objects.exclude(status='inactivo')
     serializer_class = ProductoSerializer
 
 
