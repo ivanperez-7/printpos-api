@@ -1,11 +1,14 @@
 from django.conf import settings
 from django.middleware.csrf import get_token
 from django.urls import reverse
-from rest_framework import status
+from rest_framework import status, viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+
+from .models import ConfiguracionSistema
+from .serializers import ConfiguracionSistemaSerializer
 
 
 class CookieTokenObtainPairView(TokenObtainPairView):
@@ -56,3 +59,8 @@ def logout_view(request):
     response = Response({'detail': 'Sesión cerrada correctamente.'}, status=status.HTTP_200_OK)
     response.delete_cookie(key='refresh_token')
     return response
+
+
+class ConfiguracionSistemaViewSet(viewsets.ModelViewSet):
+    queryset = ConfiguracionSistema.objects.all()
+    serializer_class = ConfiguracionSistemaSerializer

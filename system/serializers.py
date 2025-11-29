@@ -1,5 +1,8 @@
 from django.contrib.auth.models import User
+from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
+from .models import ConfiguracionSistema
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -18,3 +21,10 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             'email': user.email,
             'avatar': avatar,
         }
+
+
+class ConfiguracionSistemaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ConfiguracionSistema
+        fields = '__all__'
+        read_only_fields = ['id',]

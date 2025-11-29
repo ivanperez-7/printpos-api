@@ -11,6 +11,7 @@ urlpatterns = [
     path('api/v1/logout/', logout_view, name='logout'),
     path('api/v1/productos/', include('productos.urls')),
     path('api/v1/movimientos/', include('movimiento.urls')),
+    path('api/v1/system/', include('system.urls')),
 ]
 
 admin.site.site_header = 'PrintPOS DB'
