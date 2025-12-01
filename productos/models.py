@@ -1,4 +1,7 @@
+import uuid
+
 from django.db import models
+from django.db.models import Count
 from django.utils import timezone
 
 
@@ -66,40 +69,56 @@ class Producto(models.Model):
         ('descontinuado', 'Descontinuado'),
     ]
 
-    codigo_interno = models.CharField(max_length=50, unique=True, verbose_name='Código interno')
-    descripcion = models.CharField(max_length=255, verbose_name='Descripción')
-    categoria = models.ForeignKey(Categoría, on_delete=models.PROTECT, related_name='productos')
-    equipo = models.ForeignKey(Equipo, on_delete=models.PROTECT, related_name='productos')
-    serie_lote = models.CharField(max_length=100, verbose_name='Número de serie/lote')
+    codigo_interno = models.CharField(max_length=50, unique=True)
+    descripcion = models.CharField(max_length=255)
+    categoria = models.ForeignKey(Categoría, on_delete=models.PROTECT)
+    equipo = models.ForeignKey(Equipo, on_delete=models.PROTECT)
+    unidad_medida = models.CharField(max_length=20, default='pieza')
 
-    cantidad_disponible = models.PositiveIntegerField(default=0, verbose_name='Cantidad disponible')
-    min_stock = models.PositiveIntegerField(default=0, verbose_name='Stock mínimo')
-    unidad = models.CharField(max_length=50, default='pieza', verbose_name='Unidad de medida')
-
-    proveedor = models.ForeignKey(Proveedor, on_delete=models.SET_NULL, null=True, blank=True, related_name='productos')
-    precio_compra = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    precio_venta = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    sku = models.CharField(max_length=255)
+    min_stock = models.PositiveIntegerField()
+    proveedor = models.ForeignKey(Proveedor, on_delete=models.SET_NULL, null=True, blank=True)
 
     creado = models.DateTimeField(default=timezone.now)
     actualizado = models.DateTimeField(auto_now=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
-
-    notas = models.TextField(blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='activo')
 
     class Meta:
         verbose_name = 'Producto'
         verbose_name_plural = 'Productos'
-        ordering = ['equipo__marca__nombre', 'equipo__nombre', 'descripcion']
+    
+    def __str__(self):
+        return f'{self.codigo_interno} ({self.descripcion})'
+
+
+class Lote(models.Model):
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name='lotes')
+    codigo_lote = models.CharField(max_length=100, unique=True)
+
+    cantidad_inicial = models.PositiveIntegerField()
+    cantidad_restante = models.PositiveIntegerField()
+
+    fecha_entrada = models.DateTimeField(default=timezone.now)
+    creado = models.DateTimeField(default=timezone.now)
+    actualizado = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Lote'
+        verbose_name_plural = 'Lotes'
 
     def __str__(self):
-        return f'{self.codigo_interno} - {self.descripcion}'
+        return f'Lote de {self.producto.codigo_interno}: {self.codigo_lote}'
 
-    @property
-    def stock_bajo(self):
-        """Devuelve True si el producto está por debajo del stock mínimo."""
-        return self.cantidad_disponible <= self.min_stock
 
-    @property
-    def edad_en_dias(self):
-        """Días desde la creación del registro (para alertas de antigüedad)."""
-        return (timezone.now().date() - self.creado.date()).days
+class Unidad(models.Model):
+    lote = models.ForeignKey(Lote, on_delete=models.CASCADE, related_name='unidades')
+    codigo_unidad = models.CharField(max_length=100, unique=True, default=uuid.uuid4)
+    status = models.CharField(max_length=20, default='disponible')
+    actualizado = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Unidad'
+        verbose_name_plural = 'Unidades'
+
+    def __str__(self):
+        return f'Unidad de {self.lote.producto.codigo_interno}, lote {self.lote.codigo_lote}: {self.codigo_unidad}'

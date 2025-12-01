@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import Marca, Categoría, Proveedor, Producto, Equipo
+
+from .models import Marca, Categoría, Proveedor, Producto, Equipo, Lote, Unidad
 
 
 @admin.register(Marca)
@@ -63,28 +64,37 @@ class ProveedorAdmin(admin.ModelAdmin):
 class ProductoAdmin(admin.ModelAdmin):
     """Gestión del catálogo de productos."""
     list_display = (
-        'codigo_interno', 'descripcion', 'categoria', 'equipo', 'proveedor',
-        'cantidad_disponible', 'min_stock', 'unidad', 'precio_venta',
+        'codigo_interno',
+        'descripcion',
+        'categoria',
+        'equipo',
+        'sku',
+        'min_stock',
+        'proveedor',
+        'unidad_medida',
+        'status',
     )
     list_filter = ('categoria', 'equipo__marca', 'status')
-    search_fields = ('codigo_interno', 'descripcion', 'serie_lote')
-    autocomplete_fields = ('categoria', 'equipo', 'proveedor')
+    search_fields = ('codigo_interno', 'descripcion')
+    autocomplete_fields = ('categoria', 'equipo')
     list_per_page = 25
     ordering = ('equipo__nombre', 'descripcion')
 
     readonly_fields = ('creado', 'actualizado')
+
     fieldsets = (
         ('Identificación y descripción', {
-            'fields': ('codigo_interno', 'descripcion', 'categoria', 'equipo', 'serie_lote')
-        }),
-        ('Inventario', {
-            'fields': ('cantidad_disponible', 'min_stock', 'unidad')
-        }),
-        ('Proveedor y precios', {
-            'fields': ('proveedor', 'precio_compra', 'precio_venta')
+            'fields': (
+                'codigo_interno',
+                'descripcion',
+                'categoria',
+                'equipo',
+                'proveedor',
+                'unidad_medida',
+            )
         }),
         ('Estado y control', {
-            'fields': ('status', 'notas', 'creado', 'actualizado')
+            'fields': ('status', 'creado', 'actualizado')
         }),
     )
 
@@ -92,5 +102,39 @@ class ProductoAdmin(admin.ModelAdmin):
         return (
             super()
             .get_queryset(request)
-            .select_related('categoria', 'equipo', 'proveedor')
+            .select_related('categoria', 'equipo')
         )
+
+
+@admin.register(Lote)
+class LoteAdmin(admin.ModelAdmin):
+    list_display = (
+        'codigo_lote',
+        'producto',
+        'cantidad_inicial',
+        'cantidad_restante',
+        'fecha_entrada',
+    )
+    search_fields = ('codigo_lote', 'producto__codigo_interno')
+    list_filter = ('producto__categoria', 'producto__equipo__marca')
+    autocomplete_fields = ('producto',)
+    readonly_fields = ('creado', 'actualizado')
+    ordering = ('-fecha_entrada',)
+
+
+@admin.register(Unidad)
+class UnidadAdmin(admin.ModelAdmin):
+    list_display = (
+        'codigo_unidad',
+        'lote',
+        'producto',
+        'status',
+        'actualizado',
+    )
+    search_fields = ('codigo_unidad', 'lote__codigo_lote', 'lote__producto__codigo_interno')
+    list_filter = ('status', 'lote__producto__categoria')
+    autocomplete_fields = ('lote',)
+    readonly_fields = ('actualizado',)
+
+    def producto(self, obj):
+        return obj.lote.producto

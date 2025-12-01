@@ -1,6 +1,16 @@
 from rest_framework import serializers
 
-from .models import Producto, Categoría, Marca, Proveedor, Equipo
+from .models import Producto, Categoría, Marca, Proveedor, Equipo, Lote, Unidad
+
+__all__ = [
+    'CategoriaSerializer',
+    'MarcaSerializer',
+    'EquipoSerializer',
+    'ProveedorSerializer',
+    'ProductoSerializer',
+    'LoteSerializer',
+    'UnidadSerializer',
+]
 
 
 class CategoriaSerializer(serializers.ModelSerializer):
@@ -44,6 +54,7 @@ class ProveedorSerializer(serializers.ModelSerializer):
 
 
 class ProductoSerializer(serializers.ModelSerializer):
+    cantidad_disponible = serializers.SerializerMethodField('get_cantidad_disponible')
     categoria = CategoriaSerializer(read_only=True)
     equipo = EquipoSerializer(read_only=True)
     proveedor = ProveedorSerializer(read_only=True)
@@ -63,7 +74,24 @@ class ProductoSerializer(serializers.ModelSerializer):
         except Exception as e:
             raise serializers.ValidationError(f'Error al crear el producto: {str(e)}')
     
+    def get_cantidad_disponible(self, instance: Producto):
+      return instance.lotes.count()
+    
     class Meta:
         model = Producto
         fields = '__all__'
         read_only_fields = ['id', 'creado', 'actualizado']
+
+
+class LoteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Lote
+        fields = '__all__'
+        read_only_fields = ['id', 'creado', 'actualizado']
+
+
+class UnidadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Unidad
+        fields = '__all__'
+        read_only_fields = ['id', 'actualizado']
