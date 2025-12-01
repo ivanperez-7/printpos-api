@@ -87,9 +87,11 @@ class ProductoAdmin(admin.ModelAdmin):
             'fields': (
                 'codigo_interno',
                 'descripcion',
+                'sku',
                 'categoria',
                 'equipo',
                 'proveedor',
+                'min_stock',
                 'unidad_medida',
             )
         }),
