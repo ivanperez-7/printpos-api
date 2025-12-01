@@ -57,7 +57,14 @@ class CookieTokenRefreshView(TokenRefreshView):
 @permission_classes([IsAuthenticated])
 def logout_view(request):
     response = Response({'detail': 'Sesión cerrada correctamente.'}, status=status.HTTP_200_OK)
-    response.delete_cookie(key='refresh_token')
+    response.set_cookie(
+        key='refresh_token',
+        value='',
+        httponly=True,
+        secure=not settings.DEBUG,
+        samesite='Lax' if settings.DEBUG else 'None',
+        path=reverse('token_refresh'),
+    )
     return response
 
 
