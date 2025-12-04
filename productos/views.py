@@ -1,6 +1,5 @@
+from django_filters import rest_framework as filters
 from rest_framework import viewsets
-from rest_framework.decorators import action
-from rest_framework.response import Response
 
 from .models import Producto, Categoría, Marca, Proveedor, Equipo, Lote, Unidad
 from .serializers import *
@@ -17,27 +16,17 @@ __all__ = [
 
 
 class ProductoViewSet(viewsets.ModelViewSet):
+    queryset = Producto.objects.exclude(status='inactivo')
     serializer_class = ProductoSerializer
-
-    def get_queryset(self):
-        qs = Producto.objects.exclude(status='inactivo')
-        if (sku := self.request.query_params.get('sku')) is not None:
-            qs = qs.filter(sku=sku)
-        return qs
-
-    @action(detail=True, methods=['get'])
-    def lotes(self, request, pk=None):
-        try:
-            qs = Lote.objects.filter(producto_id=pk)
-            serializer = LoteSerializer(qs, many=True)
-            return Response(serializer.data)
-        except Exception as e:
-            return Response({'error': str(e)}, status=500)
+    filter_backends = [filters.DjangoFilterBackend]
+    filterset_fields = ['sku']
 
 
 class LoteViewSet(viewsets.ModelViewSet):
     queryset = Lote.objects.exclude(producto__status='inactivo')
     serializer_class = LoteSerializer
+    filter_backends = [filters.DjangoFilterBackend]
+    filterset_fields = ['producto']
 
 
 class UnidadViewSet(viewsets.ModelViewSet):

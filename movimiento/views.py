@@ -32,7 +32,7 @@ def main_movements_table(request):
         if filters := {
             k: v
             for k, v in request.query_params.items()
-            if v is not None
+            if k == 'items__producto' and v is not None
         }:
             entradas = entradas.filter(**filters)
             salidas = salidas.filter(**filters)
