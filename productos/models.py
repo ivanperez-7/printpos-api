@@ -1,7 +1,6 @@
 import uuid
 
 from django.db import models
-from django.db.models import Count
 from django.utils import timezone
 
 
@@ -75,7 +74,7 @@ class Producto(models.Model):
     equipo = models.ForeignKey(Equipo, on_delete=models.PROTECT)
     unidad_medida = models.CharField(max_length=20, default='pieza')
 
-    sku = models.CharField(max_length=255)
+    sku = models.CharField(max_length=255, unique=True)
     min_stock = models.PositiveIntegerField()
     proveedor = models.ForeignKey(Proveedor, on_delete=models.SET_NULL, null=True, blank=True)
 

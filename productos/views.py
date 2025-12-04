@@ -17,8 +17,13 @@ __all__ = [
 
 
 class ProductoViewSet(viewsets.ModelViewSet):
-    queryset = Producto.objects.exclude(status='inactivo')
     serializer_class = ProductoSerializer
+
+    def get_queryset(self):
+        qs = Producto.objects.exclude(status='inactivo')
+        if (sku := self.request.query_params.get('sku')) is not None:
+            qs = qs.filter(sku=sku)
+        return qs
 
     @action(detail=True, methods=['get'])
     def lotes(self, request, pk=None):

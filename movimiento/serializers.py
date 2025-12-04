@@ -1,26 +1,34 @@
 from rest_framework import serializers
 
-from .models import EntradaInventario, SalidaInventario
-from productos.serializers import ProductoSerializer, ProveedorSerializer
+from .models import EntradaInventario, SalidaInventario, EntradaItem, SalidaItem
 from organizacion.serializers import UserSerializer
 
 
+class EntradaItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EntradaItem
+        fields = ['id', 'cantidad', 'producto']
+        read_only_fields = ['id']
+
+
+class SalidaItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SalidaItem
+        fields = ['id', 'cantidad', 'producto']
+        read_only_fields = ['id']
+
+
 class EntradaInventarioSerializer(serializers.ModelSerializer):
-    producto = ProductoSerializer(read_only=True)
-    proveedor = ProveedorSerializer(read_only=True)
     recibido_por = UserSerializer(read_only=True)
     user_aprueba = UserSerializer(read_only=True)
+    items = EntradaItemSerializer(read_only=True, many=True)
 
     def create(self, validated_data):
-        producto_id = self.initial_data.get('producto', None)
-        proveedor_id = self.initial_data.get('proveedor', None)
         recibido_por_id = self.initial_data.get('recibido_por', None)
         user_aprueba_id = self.initial_data.get('user_aprueba', None)
         
         try:
             return EntradaInventario.objects.create(
-                producto_id=producto_id,
-                proveedor_id=proveedor_id,
                 recibido_por_id=recibido_por_id,
                 user_aprueba_id=user_aprueba_id,
                 **validated_data
@@ -35,13 +43,17 @@ class EntradaInventarioSerializer(serializers.ModelSerializer):
 
 
 class SalidaInventarioSerializer(serializers.ModelSerializer):
-    producto = ProductoSerializer(read_only=True)
+    entregado_por = UserSerializer(read_only=True)
+    user_aprueba = UserSerializer(read_only=True)
+    items = SalidaItemSerializer(read_only=True, many=True)
 
     def create(self, validated_data):
-        producto_id = self.initial_data.get('producto', None)
+        entregado_por_id = self.initial_data.get('entregado_por', None)
+        user_aprueba_id = self.initial_data.get('user_aprueba', None)
         try:
             return SalidaInventario.objects.create(
-                producto_id=producto_id,
+                entregado_por_id=entregado_por_id,
+                user_aprueba_id=user_aprueba_id,
                 **validated_data
             )
         except Exception as e:

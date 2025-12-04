@@ -37,8 +37,8 @@ def main_movements_table(request):
             entradas = entradas.filter(**filters)
             salidas = salidas.filter(**filters)
     
-        entrada_serializer = EntradaInventarioSerializer(entradas, many=True)
-        salida_serializer = SalidaInventarioSerializer(salidas, many=True)
+        entrada_serializer = EntradaInventarioSerializer(entradas.distinct(), many=True)
+        salida_serializer = SalidaInventarioSerializer(salidas.distinct(), many=True)
     
         combined_data = {
             'entradas': entrada_serializer.data,
