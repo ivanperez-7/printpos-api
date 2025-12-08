@@ -16,21 +16,25 @@ __all__ = [
 
 
 class ProductoViewSet(viewsets.ModelViewSet):
-    queryset = Producto.objects.exclude(status='inactivo')
+    queryset = (
+        Producto.objects.exclude(status='inactivo')
+        .select_related('categoria', 'proveedor')
+        .prefetch_related('equipos')
+    )
     serializer_class = ProductoSerializer
     filter_backends = [filters.DjangoFilterBackend]
     filterset_fields = ['sku']
 
 
 class LoteViewSet(viewsets.ModelViewSet):
-    queryset = Lote.objects.exclude(producto__status='inactivo')
+    queryset = Lote.objects.exclude(producto__status='inactivo').select_related('producto')
     serializer_class = LoteSerializer
     filter_backends = [filters.DjangoFilterBackend]
     filterset_fields = ['producto']
 
 
 class UnidadViewSet(viewsets.ModelViewSet):
-    queryset = Unidad.objects.exclude(lote__producto__status='inactivo')
+    queryset = Unidad.objects.exclude(lote__producto__status='inactivo').select_related('lote')
     serializer_class = UnidadSerializer
 
 
@@ -45,7 +49,7 @@ class MarcaViewSet(viewsets.ModelViewSet):
 
 
 class EquipoViewSet(viewsets.ModelViewSet):
-    queryset = Equipo.objects.all()
+    queryset = Equipo.objects.all().select_related('marca')
     serializer_class = EquipoSerializer
 
 

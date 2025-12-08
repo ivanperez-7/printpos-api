@@ -71,7 +71,7 @@ class Producto(models.Model):
     codigo_interno = models.CharField(max_length=50, unique=True)
     descripcion = models.CharField(max_length=255)
     categoria = models.ForeignKey(Categoría, on_delete=models.PROTECT)
-    equipo = models.ForeignKey(Equipo, on_delete=models.PROTECT)
+    equipos = models.ManyToManyField(Equipo, blank=True)
     unidad_medida = models.CharField(max_length=20, default='pieza')
 
     sku = models.CharField(max_length=255, unique=True)

@@ -67,18 +67,18 @@ class ProductoAdmin(admin.ModelAdmin):
         'codigo_interno',
         'descripcion',
         'categoria',
-        'equipo',
+        'equipos_list',
         'sku',
         'min_stock',
         'proveedor',
         'unidad_medida',
         'status',
     )
-    list_filter = ('categoria', 'equipo__marca', 'status')
+    list_filter = ('categoria', 'equipos__marca', 'status')
     search_fields = ('codigo_interno', 'descripcion')
-    autocomplete_fields = ('categoria', 'equipo')
+    autocomplete_fields = ('categoria', 'equipos')
     list_per_page = 25
-    ordering = ('equipo__nombre', 'descripcion')
+    ordering = ('codigo_interno', 'equipos__nombre')
 
     readonly_fields = ('creado', 'actualizado')
 
@@ -89,7 +89,7 @@ class ProductoAdmin(admin.ModelAdmin):
                 'descripcion',
                 'sku',
                 'categoria',
-                'equipo',
+                'equipos',
                 'proveedor',
                 'min_stock',
                 'unidad_medida',
@@ -104,8 +104,11 @@ class ProductoAdmin(admin.ModelAdmin):
         return (
             super()
             .get_queryset(request)
-            .select_related('categoria', 'equipo')
+            .select_related('categoria')
         )
+    
+    def equipos_list(self, obj: Producto):
+        return ", ".join([equipo.nombre for equipo in obj.equipos.all()]) if obj.equipos.exists() else "-"
 
 
 @admin.register(Lote)
@@ -118,7 +121,7 @@ class LoteAdmin(admin.ModelAdmin):
         'fecha_entrada',
     )
     search_fields = ('codigo_lote', 'producto__codigo_interno')
-    list_filter = ('producto__categoria', 'producto__equipo__marca')
+    list_filter = ('producto__categoria', 'producto__equipos__marca')
     autocomplete_fields = ('producto',)
     readonly_fields = ('creado', 'actualizado')
     ordering = ('-fecha_entrada',)

@@ -1,5 +1,4 @@
 from rest_framework import serializers
-
 from .models import Producto, Categoría, Marca, Proveedor, Equipo, Lote, Unidad
 
 __all__ = [
@@ -29,16 +28,11 @@ class MarcaSerializer(serializers.ModelSerializer):
 
 class EquipoSerializer(serializers.ModelSerializer):
     marca = MarcaSerializer(read_only=True)
-
-    def create(self, validated_data):
-        marca_id = self.initial_data.get('marca', None)
-        try:
-            return Equipo.objects.create(
-                marca_id=marca_id,
-                **validated_data
-            )
-        except Exception as e:
-            raise serializers.ValidationError(f'Error al crear el equipo: {str(e)}')
+    marca_id = serializers.PrimaryKeyRelatedField(
+        queryset=Marca.objects.all(),
+        write_only=True,
+        source='marca'
+    )
 
     class Meta:
         model = Equipo
@@ -54,33 +48,35 @@ class ProveedorSerializer(serializers.ModelSerializer):
 
 
 class ProductoSerializer(serializers.ModelSerializer):
-    cantidad_disponible = serializers.SerializerMethodField('get_cantidad_disponible')
+    cantidad_disponible = serializers.SerializerMethodField()
     categoria = CategoriaSerializer(read_only=True)
-    equipo = EquipoSerializer(read_only=True)
+    equipos = EquipoSerializer(read_only=True, many=True)
     proveedor = ProveedorSerializer(read_only=True)
 
-    def create(self, validated_data):
-        categoria_id = self.initial_data.get('categoria', None)
-        equipo_id = self.initial_data.get('equipo', None)
-        proveedor_id = self.initial_data.get('proveedor', None)
+    categoria_id = serializers.PrimaryKeyRelatedField(
+        queryset=Categoría.objects.all(),
+        write_only=True,
+        source='categoria'
+    )
+    equipos_id = serializers.PrimaryKeyRelatedField(
+        queryset=Equipo.objects.all(),
+        write_only=True,
+        many=True,
+        source='equipos'
+    )
+    proveedor_id = serializers.PrimaryKeyRelatedField(
+        queryset=Proveedor.objects.all(),
+        write_only=True,
+        source='proveedor'
+    )
 
-        try:
-            return Producto.objects.create(
-                categoria_id=categoria_id,
-                equipo_id=equipo_id,
-                proveedor_id=proveedor_id,
-                **validated_data
-            )
-        except Exception as e:
-            raise serializers.ValidationError(f'Error al crear el producto: {str(e)}')
-    
-    def get_cantidad_disponible(self, instance: Producto):
-      return instance.lotes.count()
-    
     class Meta:
         model = Producto
         fields = '__all__'
         read_only_fields = ['id', 'creado', 'actualizado']
+
+    def get_cantidad_disponible(self, instance):
+        return instance.lotes.count()
 
 
 class LoteSerializer(serializers.ModelSerializer):

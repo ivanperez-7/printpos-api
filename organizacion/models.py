@@ -2,6 +2,32 @@ from django.contrib.auth.models import User
 from django.db import models
 
 
+class Cliente(models.Model):
+    TIPO_PERSONA = [
+        ('fisica', 'Persona Física'),
+        ('moral', 'Persona Moral'),
+    ]
+
+    nombre = models.CharField(max_length=200)
+    tipo = models.CharField(max_length=10, choices=TIPO_PERSONA, default='fisica')
+
+    rfc = models.CharField(max_length=13, blank=True, null=True, unique=True)
+    telefono = models.CharField(max_length=20, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+
+    direccion = models.TextField(blank=True, null=True)
+
+    activo = models.BooleanField(default=True)
+    creado = models.DateTimeField(auto_now_add=True)
+    actualizado = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['nombre']
+
+    def __str__(self):
+        return self.nombre
+
+
 class Sucursal(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
     direccion = models.CharField(max_length=200, blank=True, null=True)

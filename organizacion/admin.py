@@ -1,6 +1,32 @@
 from django.contrib import admin
 
-from .models import Sucursal, PerfilUsuario
+from .models import Cliente, Sucursal, PerfilUsuario
+
+
+@admin.register(Cliente)
+class ClienteAdmin(admin.ModelAdmin):
+    list_display = (
+        'nombre',
+        'tipo',
+        'rfc',
+        'telefono',
+        'email',
+        'activo',
+        'creado',
+    )
+    list_filter = (
+        'tipo',
+        'activo',
+        'creado',
+    )
+    search_fields = (
+        'nombre',
+        'rfc',
+        'email',
+    )
+    ordering = ('nombre',)
+    readonly_fields = ('creado', 'actualizado')
+    list_per_page = 20
 
 
 @admin.register(Sucursal)
