@@ -78,7 +78,7 @@ class ProductoAdmin(admin.ModelAdmin):
     search_fields = ('codigo_interno', 'descripcion')
     autocomplete_fields = ('categoria', 'equipos')
     list_per_page = 25
-    ordering = ('codigo_interno', 'equipos__nombre')
+    ordering = ('codigo_interno',)
 
     readonly_fields = ('creado', 'actualizado')
 

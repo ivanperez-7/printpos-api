@@ -34,7 +34,7 @@ class Movimiento(models.Model):
         return f"Movimiento {self.id} ({self.tipo})"
 
     def approve(self, user):
-        if user.profile.role != "admin":
+        if user.profile.rol != "admin":
             raise PermissionError("Solo administradores pueden aprobar movimientos.")
 
         self.aprobado = True

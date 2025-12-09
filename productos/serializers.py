@@ -76,7 +76,7 @@ class ProductoSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'creado', 'actualizado']
 
     def get_cantidad_disponible(self, instance):
-        return instance.lotes.count()
+        return Unidad.objects.filter(lote__producto=instance).filter(status='disponible').count()
 
 
 class LoteSerializer(serializers.ModelSerializer):

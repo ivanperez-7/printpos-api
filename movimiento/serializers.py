@@ -10,7 +10,7 @@ from productos.models import Producto
 
 class MovimientoItemSerializer(serializers.ModelSerializer):
     producto = InlineShapelessModelSerializer(
-        model=Producto, fields=['id', 'codigo_interno'], read_only=True
+        model=Producto, fields=['id', 'codigo_interno', 'descripcion'], read_only=True
     )
     producto_id = serializers.PrimaryKeyRelatedField(
         queryset=Producto.objects.all(),
@@ -76,15 +76,10 @@ class MovimientoSerializer(serializers.ModelSerializer):
         d_entrada = validated_data.pop("detalle_entrada", None)
         d_salida = validated_data.pop("detalle_salida", None)
 
-        if not(d_entrada or d_salida) or (d_entrada and d_salida):
-            raise serializers.ValidationError('Se debe especificar exactamente un tipo de detalles del movimiento')
         if not items_data:
             raise serializers.ValidationError('No se recibieron items para el movimiento')
 
         movimiento = Movimiento.objects.create(creado_por=self.context['request'].user, **validated_data)
-
-        if (movimiento.tipo == "entrada" and d_salida) or (movimiento.tipo == "salida" and d_entrada):
-            raise serializers.ValidationError('Tipo de movimiento y detalles son incongruentes')
 
         for item in items_data:
             MovimientoItem.objects.create(movimiento=movimiento, **item)
