@@ -6,7 +6,7 @@ from django.utils import timezone
 
 class Marca(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
-    descripcion = models.TextField(blank=True, null=True)
+    activo = models.BooleanField(default=True)
 
     class Meta:
         verbose_name = 'Marca'
@@ -19,8 +19,8 @@ class Marca(models.Model):
 
 class Equipo(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
-    descripcion = models.TextField(blank=True, null=True)
     marca = models.ForeignKey(Marca, on_delete=models.CASCADE, related_name='equipos')
+    activo = models.BooleanField(default=True)
 
     class Meta:
         verbose_name = 'Equipo'

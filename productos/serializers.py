@@ -67,7 +67,8 @@ class ProductoSerializer(serializers.ModelSerializer):
     proveedor_id = serializers.PrimaryKeyRelatedField(
         queryset=Proveedor.objects.all(),
         write_only=True,
-        source='proveedor'
+        source='proveedor',
+        allow_null=True
     )
 
     class Meta:

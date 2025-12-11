@@ -26,7 +26,7 @@ class MovimientoItemSerializer(serializers.ModelSerializer):
 
 class DetalleEntradaSerializer(serializers.ModelSerializer):
     recibido_por = InlineShapelessModelSerializer(
-        model=User, fields=['username'], read_only=True
+        model=User, fields=['username', 'first_name', 'last_name'], read_only=True
     )
     recibido_por_id = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(),
@@ -56,10 +56,10 @@ class DetalleSalidaSerializer(serializers.ModelSerializer):
 
 class MovimientoSerializer(serializers.ModelSerializer):
     creado_por = InlineShapelessModelSerializer(
-        model=User, fields=['username'], read_only=True
+        model=User, fields=['username', 'first_name', 'last_name'], read_only=True
     )
     user_aprueba = InlineShapelessModelSerializer(
-        model=User, fields=['username'], read_only=True
+        model=User, fields=['username', 'first_name', 'last_name'], read_only=True
     )
     items = MovimientoItemSerializer(many=True)
     detalle_entrada = DetalleEntradaSerializer(required=False)

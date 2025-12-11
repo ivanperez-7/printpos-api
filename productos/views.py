@@ -44,12 +44,16 @@ class CategoriaViewSet(viewsets.ModelViewSet):
 
 
 class MarcaViewSet(viewsets.ModelViewSet):
-    queryset = Marca.objects.all()
+    queryset = Marca.objects.filter(activo=True)
     serializer_class = MarcaSerializer
 
 
 class EquipoViewSet(viewsets.ModelViewSet):
-    queryset = Equipo.objects.all().select_related('marca')
+    queryset = (
+        Equipo.objects.filter(activo=True, marca__activo=True)
+        .order_by('marca__nombre', 'nombre')
+        .select_related('marca')
+    )
     serializer_class = EquipoSerializer
 
 
