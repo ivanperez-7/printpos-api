@@ -15,4 +15,5 @@ router.register(r'proveedores', ProveedorViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('dashboard/', dashboard_view),
 ]

@@ -3,30 +3,19 @@ from django.contrib import admin
 from .models import Marca, Categoría, Proveedor, Producto, Equipo, Lote, Unidad
 
 
+class EquipoInline(admin.TabularInline):
+    model = Equipo
+    extra = 1
+
+
 @admin.register(Marca)
 class MarcaAdmin(admin.ModelAdmin):
     """Administración de marcas."""
-    list_display = ('nombre', 'descripcion_resumida')
+    list_display = ('nombre', 'activo')
     search_fields = ('nombre',)
     ordering = ('nombre',)
     list_per_page = 25
-
-    def descripcion_resumida(self, obj):
-        return (obj.descripcion[:50] + '...') if obj.descripcion and len(obj.descripcion) > 50 else obj.descripcion
-    descripcion_resumida.short_description = 'Descripción'
-
-
-@admin.register(Equipo)
-class EquipoAdmin(admin.ModelAdmin):
-    """Administración de equpos."""
-    list_display = ('nombre', 'descripcion_resumida')
-    search_fields = ('nombre',)
-    ordering = ('nombre',)
-    list_per_page = 25
-
-    def descripcion_resumida(self, obj):
-        return (obj.descripcion[:50] + '...') if obj.descripcion and len(obj.descripcion) > 50 else obj.descripcion
-    descripcion_resumida.short_description = 'Descripción'
+    inlines = [EquipoInline]
 
 
 @admin.register(Categoría)
@@ -76,7 +65,6 @@ class ProductoAdmin(admin.ModelAdmin):
     )
     list_filter = ('categoria', 'equipos__marca', 'status')
     search_fields = ('codigo_interno', 'descripcion')
-    autocomplete_fields = ('categoria', 'equipos')
     list_per_page = 25
     ordering = ('codigo_interno',)
 

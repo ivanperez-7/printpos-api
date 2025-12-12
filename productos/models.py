@@ -85,6 +85,10 @@ class Producto(models.Model):
     class Meta:
         verbose_name = 'Producto'
         verbose_name_plural = 'Productos'
+
+    @property
+    def cantidad_disponible(self):
+        return Unidad.objects.filter(lote__producto=self).filter(status='disponible').count()
     
     def __str__(self):
         return f'{self.codigo_interno} ({self.descripcion})'

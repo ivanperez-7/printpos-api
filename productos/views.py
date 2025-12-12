@@ -1,8 +1,15 @@
+from django.db.models import Count, Q, F
+from django.db.models.functions import TruncDate
+from django.utils import timezone
 from django_filters import rest_framework as filters
 from rest_framework import viewsets
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
 
 from .models import Producto, Categoría, Marca, Proveedor, Equipo, Lote, Unidad
 from .serializers import *
+from movimiento.models import Movimiento
+from organizacion.views import ClienteViewSet
 
 __all__ = [
     'ProductoViewSet',
@@ -12,6 +19,7 @@ __all__ = [
     'MarcaViewSet',
     'EquipoViewSet',
     'ProveedorViewSet',
+    'dashboard_view',
 ]
 
 
@@ -60,3 +68,48 @@ class EquipoViewSet(viewsets.ModelViewSet):
 class ProveedorViewSet(viewsets.ModelViewSet):
     queryset = Proveedor.objects.all()
     serializer_class = ProveedorSerializer
+
+
+@api_view()
+def dashboard_view(request):
+    productos = ProductoViewSet.queryset.all()
+    lotes = LoteViewSet.queryset.all()
+    categorias = CategoriaViewSet.queryset.all()
+    proveedores = ProveedorViewSet.queryset.all()
+    clientes = ClienteViewSet.queryset.all()
+
+    hace_30_dias = timezone.now() - timezone.timedelta(days=30)
+
+    return Response(
+        {
+            'stats': {
+                'productos': productos.count(),
+                'lotes': lotes.count(),
+                'categorias': categorias.count(),
+                'proveedores': proveedores.count(),
+                'clientes': clientes.count(),
+            },
+            'categoriasChart': (
+                categorias.annotate(
+                    cantidad=Count('producto', filter=Q(producto__status='activo'))
+                )
+                .filter(cantidad__gt=0)
+                .values('nombre', 'cantidad')
+            ),
+            'entradasChart': (
+                Movimiento.objects.filter(tipo='entrada', creado__gte=hace_30_dias)
+                .annotate(fecha_creado=TruncDate('creado'))
+                .values('fecha_creado')
+                .annotate(total=Count('id'))
+            ),
+            'clientesChart': [{"tipo": "lol", "cantidad": 120}, {"tipo": "lol2", "cantidad": 57}],
+            'productosBajos': (
+                productos.annotate(
+                    stock=Count('lotes__unidades', filter=Q(lotes__unidades__status='disponible'))
+                )
+                .filter(stock__lte=F('min_stock'))
+                .order_by('stock')
+                .values('descripcion', 'categoria__nombre', 'stock')
+            ),
+        }
+    )
