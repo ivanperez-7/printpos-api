@@ -1,6 +1,8 @@
 from django.contrib.auth.models import User
 from django.db import models
 
+from productos.models import Equipo
+
 
 class Cliente(models.Model):
     TIPO_PERSONA = [
@@ -61,3 +63,17 @@ class PerfilUsuario(models.Model):
 
     def __str__(self):
         return f'{self.usuario.username} ({self.get_rol_display()})'
+
+
+class EquipoCliente(models.Model):
+    equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='clientes')
+    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name='equipos')
+    contador_uso = models.PositiveIntegerField()
+
+    class Meta:
+        verbose_name = 'Equipo de cliente'
+        verbose_name_plural = 'Equipos de clientes'
+        unique_together = ('equipo', 'cliente')
+
+    def __str__(self):
+        return f'Equipo {self.equipo.nombre} para Cliente {self.cliente.nombre}'

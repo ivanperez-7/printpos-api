@@ -1,10 +1,17 @@
 from django.contrib import admin
 
-from .models import Cliente, Sucursal, PerfilUsuario
+from .models import Cliente, Sucursal, PerfilUsuario, EquipoCliente
+
+
+class EquipoClienteInline(admin.TabularInline):
+    """Inline para mostrar los equipos asignados a un cliente."""
+    model = EquipoCliente
+    extra = 0
 
 
 @admin.register(Cliente)
 class ClienteAdmin(admin.ModelAdmin):
+    inlines = [EquipoClienteInline]
     list_display = (
         'nombre',
         'tipo',
