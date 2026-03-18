@@ -5,6 +5,7 @@ from shapeless_serializers.serializers import InlineShapelessModelSerializer
 
 from .models import Movimiento, MovimientoItem, DetalleEntrada, DetalleSalida
 from organizacion.models import Cliente
+from organizacion.serializers import UserSerializer
 from productos.models import Producto
 
 
@@ -25,9 +26,7 @@ class MovimientoItemSerializer(serializers.ModelSerializer):
 
 
 class DetalleEntradaSerializer(serializers.ModelSerializer):
-    recibido_por = InlineShapelessModelSerializer(
-        model=User, fields=['username', 'first_name', 'last_name'], read_only=True
-    )
+    recibido_por = UserSerializer(read_only=True)
     recibido_por_id = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(),
         write_only=True,
@@ -55,12 +54,8 @@ class DetalleSalidaSerializer(serializers.ModelSerializer):
 
 
 class MovimientoSerializer(serializers.ModelSerializer):
-    creado_por = InlineShapelessModelSerializer(
-        model=User, fields=['username', 'first_name', 'last_name'], read_only=True
-    )
-    user_aprueba = InlineShapelessModelSerializer(
-        model=User, fields=['username', 'first_name', 'last_name'], read_only=True
-    )
+    creado_por = UserSerializer(read_only=True)
+    user_aprueba = UserSerializer(read_only=True)
     items = MovimientoItemSerializer(many=True)
     detalle_entrada = DetalleEntradaSerializer(required=False)
     detalle_salida = DetalleSalidaSerializer(required=False)
@@ -80,13 +75,17 @@ class MovimientoSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('No se recibieron items para el movimiento')
 
         movimiento = Movimiento.objects.create(creado_por=self.context['request'].user, **validated_data)
-
         for item in items_data:
             MovimientoItem.objects.create(movimiento=movimiento, **item)
 
         if movimiento.tipo == "entrada":
             DetalleEntrada.objects.create(movimiento=movimiento, **d_entrada)
         elif movimiento.tipo == "salida":
-            DetalleSalida.objects.create(movimiento=movimiento, **d_salida)
+            # TODO: checar contadores del cliente
+            ds = DetalleSalida.objects.create(movimiento=movimiento, **d_salida)
+            breakpoint()
+
+            if ds.cliente.equipos.filter(contador_uso__gte=0).exists():
+                raise serializers.ValidationError('No se puede generar movimiento para este cliente.')
 
         return movimiento
