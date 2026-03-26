@@ -25,12 +25,14 @@ class ClienteViewSet(viewsets.ModelViewSet):
             else:
                 qs = cliente.equipos.all()
 
-            equipos = qs.values('equipo__id', 'equipo__nombre', 'contador_uso').distinct()
+            equipos = qs.values('id', 'equipo__id', 'equipo__nombre', 'contador_uso').distinct()
             return Response(equipos)
         
         if request.method == 'POST':
             # Crear equipos del cliente
-            ...
+            cliente = self.get_object()
+            cliente.equipos.create(equipo_id=request.data['equipoId'], contador_uso=request.data['contadorUso'])
+            return Response({'success': True}, status=201)
         
         return Response(status=405)
 

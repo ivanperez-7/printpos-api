@@ -16,7 +16,7 @@ class MovimientoViewSet(viewsets.ModelViewSet):
     
     serializer_class = MovimientoSerializer
     filter_backends = [filters.DjangoFilterBackend]
-    filterset_fields = ['items__producto']
+    filterset_fields = ['items__producto', 'detalle_salida__cliente']
 
     @action(detail=True, methods=['post'])
     def aprobar(self, request, pk=None):
