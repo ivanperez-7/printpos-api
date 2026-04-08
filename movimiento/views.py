@@ -12,7 +12,7 @@ class MovimientoViewSet(viewsets.ModelViewSet):
         'creado_por', 'user_aprueba',
         'detalle_entrada__recibido_por',
         'detalle_salida__cliente'
-    ).prefetch_related('items', 'items__producto')
+    ).prefetch_related('items', 'items__producto').distinct()
     
     serializer_class = MovimientoSerializer
     filter_backends = [filters.DjangoFilterBackend]
