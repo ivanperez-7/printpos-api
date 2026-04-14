@@ -20,6 +20,9 @@ class MovimientoViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def aprobar(self, request, pk=None):
-        movimiento = self.get_object()
-        movimiento.approve(request.user)
-        return Response({"status": "aprobado"})
+        try:
+            movimiento = self.get_object()
+            movimiento.approve(request.user)
+            return Response({"status": "aprobado"})
+        except Exception as e:
+            return Response({"detail": str(e)}, status=500)

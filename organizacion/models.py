@@ -40,7 +40,7 @@ class Sucursal(models.Model):
         verbose_name_plural = 'Sucursales'
 
     def __str__(self):
-        return f'{self.nombre} ({self.empresa.nombre})'
+        return self.nombre
 
 
 class PerfilUsuario(models.Model):
@@ -68,6 +68,7 @@ class PerfilUsuario(models.Model):
 class EquipoCliente(models.Model):
     equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE, related_name='clientes')
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name='equipos')
+    alias = models.CharField(max_length=100, blank=True, null=True)
     contador_uso = models.PositiveIntegerField()
 
     class Meta:
@@ -76,4 +77,4 @@ class EquipoCliente(models.Model):
         unique_together = ('equipo', 'cliente')
 
     def __str__(self):
-        return f'Equipo {self.equipo.nombre} para Cliente {self.cliente.nombre}'
+        return f'Equipo {self.equipo.nombre} para Cliente {self.cliente.nombre} ({self.alias})'

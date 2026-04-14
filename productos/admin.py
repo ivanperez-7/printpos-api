@@ -114,6 +114,9 @@ class LoteAdmin(admin.ModelAdmin):
     readonly_fields = ('creado', 'actualizado')
     ordering = ('-fecha_entrada',)
 
+    def cantidad_restante(self, obj: Lote):
+        return obj.cantidad_restante
+
 
 @admin.register(Unidad)
 class UnidadAdmin(admin.ModelAdmin):

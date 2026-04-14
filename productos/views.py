@@ -28,10 +28,11 @@ class ProductoViewSet(viewsets.ModelViewSet):
         Producto.objects.exclude(status='inactivo')
         .select_related('categoria', 'proveedor')
         .prefetch_related('equipos')
+        .distinct()
     )
     serializer_class = ProductoSerializer
     filter_backends = [filters.DjangoFilterBackend]
-    filterset_fields = ['sku']
+    filterset_fields = ['sku', 'lotes__codigo_lote']
 
 
 class LoteViewSet(viewsets.ModelViewSet):

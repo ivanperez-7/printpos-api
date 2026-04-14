@@ -12,7 +12,7 @@ __all__ = ['ClienteViewSet', 'UserViewSet']
 class ClienteViewSet(viewsets.ModelViewSet):
     queryset = Cliente.objects.filter(activo=True)
     serializer_class = ClienteSerializer
-    
+
     @action(detail=True, methods=['get', 'post'])
     def equipos(self, request, pk=None):
         if request.method == 'GET':
@@ -25,15 +25,19 @@ class ClienteViewSet(viewsets.ModelViewSet):
             else:
                 qs = cliente.equipos.all()
 
-            equipos = qs.values('id', 'equipo__id', 'equipo__nombre', 'contador_uso').distinct()
+            equipos = qs.values('id', 'equipo__id', 'equipo__nombre', 'contador_uso', 'alias').distinct()
             return Response(equipos)
-        
+
         if request.method == 'POST':
             # Crear equipos del cliente
             cliente = self.get_object()
-            cliente.equipos.create(equipo_id=request.data['equipoId'], contador_uso=request.data['contadorUso'])
+            cliente.equipos.create(
+                equipo_id=request.data['equipoId'],
+                contador_uso=request.data['contadorUso'],
+                alias=request.data.get('alias', '')
+            )
             return Response({'success': True}, status=201)
-        
+
         return Response(status=405)
 
 

@@ -81,10 +81,15 @@ class ProductoSerializer(serializers.ModelSerializer):
 
 
 class LoteSerializer(serializers.ModelSerializer):
+    cantidad_restante = serializers.SerializerMethodField()
+
     class Meta:
         model = Lote
         fields = '__all__'
         read_only_fields = ['id', 'creado', 'actualizado']
+    
+    def get_cantidad_restante(self, instance: Lote):
+        return instance.cantidad_restante
 
 
 class UnidadSerializer(serializers.ModelSerializer):

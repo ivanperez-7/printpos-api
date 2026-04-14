@@ -77,4 +77,4 @@ class DetalleEntradaAdmin(admin.ModelAdmin):
 
 @admin.register(DetalleSalida)
 class DetalleSalidaAdmin(admin.ModelAdmin):
-    list_display = ('movimiento', 'cliente', 'tecnico', 'requiere_aprobacion')
+    list_display = ('movimiento', 'cliente', 'tecnico')

@@ -71,7 +71,11 @@ class Producto(models.Model):
     codigo_interno = models.CharField(max_length=50, unique=True)
     descripcion = models.CharField(max_length=255)
     categoria = models.ForeignKey(Categoría, on_delete=models.PROTECT)
-    equipos = models.ManyToManyField(Equipo, blank=True)
+    equipos = models.ManyToManyField(
+        Equipo,
+        blank=True,
+        limit_choices_to={'activo': True, 'marca__activo': True}
+    )
     unidad_medida = models.CharField(max_length=20, default='pieza')
 
     sku = models.CharField(max_length=255, unique=True)
@@ -88,7 +92,7 @@ class Producto(models.Model):
 
     @property
     def cantidad_disponible(self):
-        return Unidad.objects.filter(lote__producto=self).filter(status='disponible').count()
+        return Unidad.objects.filter(lote__producto=self, status='disponible').count()
 
     def __str__(self):
         return f'{self.codigo_interno} ({self.descripcion})'
@@ -99,7 +103,6 @@ class Lote(models.Model):
     codigo_lote = models.CharField(max_length=100, unique=True)
 
     cantidad_inicial = models.PositiveIntegerField()
-    cantidad_restante = models.PositiveIntegerField()
 
     fecha_entrada = models.DateTimeField(default=timezone.now)
     creado = models.DateTimeField(default=timezone.now)
@@ -108,6 +111,10 @@ class Lote(models.Model):
     class Meta:
         verbose_name = 'Lote'
         verbose_name_plural = 'Lotes'
+    
+    @property
+    def cantidad_restante(self):
+        return self.unidades.filter(status='disponible').count()
 
     def __str__(self):
         return f'Lote de {self.producto.codigo_interno}: {self.codigo_lote}'

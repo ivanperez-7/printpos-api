@@ -106,7 +106,6 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    'TOKEN_OBTAIN_SERIALIZER': 'system.serializers.CustomTokenObtainPairSerializer',
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=int(os.getenv('ACCESS_TOKEN_LIFETIME_MINUTES', 5))),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=int(os.getenv('REFRESH_TOKEN_LIFETIME_DAYS', 7))),
 }

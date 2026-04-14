@@ -1,5 +1,5 @@
 from django.contrib.auth.models import User
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 
 from organizacion.models import Cliente
@@ -33,9 +33,12 @@ class Movimiento(models.Model):
     def __str__(self):
         return f"Movimiento {self.id} ({self.tipo})"
 
+    @transaction.atomic
     def approve(self, user):
         if user.profile.rol != "admin":
             raise PermissionError("Solo administradores pueden aprobar movimientos.")
+        if self.aprobado:
+            raise ValueError("Movimiento ya aprobado.")
 
         self.aprobado = True
         self.aprobado_fecha = timezone.now()
@@ -79,7 +82,6 @@ class DetalleSalida(models.Model):
     )
     cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT, related_name='salidas_inventario')
     tecnico = models.CharField(max_length=120, blank=True, null=True)
-    requiere_aprobacion = models.BooleanField(default=True)
 
     class Meta:
         ordering = ['-movimiento__creado']
@@ -113,7 +115,6 @@ class MovimientoItem(models.Model):
             producto=self.producto,
             codigo_lote=codigo,
             cantidad_inicial=self.cantidad,
-            cantidad_restante=self.cantidad,
         )
 
         unidades = [Unidad(lote=lote) for _ in range(self.cantidad)]
@@ -128,11 +129,11 @@ class MovimientoItem(models.Model):
         ).order_by('id')[:self.cantidad]
 
         if disponibles.count() < self.cantidad:
-            raise ValueError(
-                f"No hay suficientes unidades de {self.producto.codigo_interno}"
-            )
+            raise ValueError(f"No hay suficientes unidades de {self.producto.codigo_interno}")
 
-        disponibles.update(status='retirada', actualizado=timezone.now())
+        # cringe
+        ids = disponibles.values_list('pk', flat=True)
+        Unidad.objects.filter(pk__in=ids).update(status='retirada', actualizado=timezone.now())
         return disponibles
     
     class Meta:

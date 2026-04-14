@@ -83,9 +83,8 @@ class MovimientoSerializer(serializers.ModelSerializer):
         elif movimiento.tipo == "salida":
             # TODO: checar contadores del cliente
             ds = DetalleSalida.objects.create(movimiento=movimiento, **d_salida)
-            breakpoint()
-
             if ds.cliente.equipos.filter(contador_uso__gte=0).exists():
-                raise serializers.ValidationError('No se puede generar movimiento para este cliente.')
+                pass
+                # raise serializers.ValidationError('No se puede generar movimiento para este cliente.')
 
         return movimiento

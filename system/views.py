@@ -9,6 +9,18 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .models import ConfiguracionSistema
 from .serializers import ConfiguracionSistemaSerializer
+from organizacion.serializers import UserSerializer
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def me(request):
+    user = request.user
+
+    if not user.profile:
+        return Response({'detail': 'Perfil de usuario no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+    return Response(UserSerializer(user).data)
 
 
 class CookieTokenObtainPairView(TokenObtainPairView):
