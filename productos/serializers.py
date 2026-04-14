@@ -1,4 +1,5 @@
 from rest_framework import serializers
+
 from .models import Producto, Categoría, Marca, Proveedor, Equipo, Lote, Unidad
 
 __all__ = [

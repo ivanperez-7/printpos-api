@@ -59,7 +59,7 @@ class MovimientoAdmin(admin.ModelAdmin):
         según el tipo de movimiento.
         """
         if not obj:
-            return []  # al crear no se muestran aún
+            return []  # Al crear no se muestran aún
 
         if obj.tipo == 'entrada':
             return [DetalleEntradaInline, MovimientoItemInline]

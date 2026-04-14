@@ -1,4 +1,4 @@
-from django.db.models import Count, Q, F
+from django.db.models import Count, Q, F, Prefetch
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 from django_filters import rest_framework as filters
@@ -27,7 +27,12 @@ class ProductoViewSet(viewsets.ModelViewSet):
     queryset = (
         Producto.objects.exclude(status='inactivo')
         .select_related('categoria', 'proveedor')
-        .prefetch_related('equipos')
+        .prefetch_related(
+            Prefetch(
+                'equipos',
+                queryset=Equipo.objects.filter(activo=True, marca__activo=True).select_related('marca')
+            ),
+        )
         .distinct()
     )
     serializer_class = ProductoSerializer

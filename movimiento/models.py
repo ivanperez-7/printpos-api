@@ -35,6 +35,9 @@ class Movimiento(models.Model):
 
     @transaction.atomic
     def approve(self, user):
+        if self.items.exclude(producto__status='activo').exists():
+            raise ValueError("No se pueden aprobar movimientos con productos inactivos.")
+
         if user.profile.rol != "admin":
             raise PermissionError("Solo administradores pueden aprobar movimientos.")
         if self.aprobado:
@@ -45,14 +48,15 @@ class Movimiento(models.Model):
         self.user_aprueba = user
         self.save()
 
-        # delegación: cada tipo sabe cómo procesarse
+        # Procesar cada item según el tipo de movimiento
         if hasattr(self, "detalle_entrada"):
-            return self.detalle_entrada.procesar()
-
-        if hasattr(self, "detalle_salida"):
-            return self.detalle_salida.procesar()
-
-        raise RuntimeError("Movimiento sin detalle asociado.")
+            for item in self.items.all():
+                item.crear_lote()
+        elif hasattr(self, "detalle_salida"):
+            for item in self.items.all():
+                item.asignar_unidades()
+        else:
+            raise RuntimeError("Movimiento sin detalle asociado.")
 
 
 class DetalleEntrada(models.Model):
@@ -62,11 +66,6 @@ class DetalleEntrada(models.Model):
     numero_factura = models.CharField(max_length=100)
     recibido_por = models.ForeignKey(User, on_delete=models.PROTECT)
 
-    def procesar(self):
-        for item in self.movimiento.items.all():
-            item.crear_lote()
-        return True
-    
     class Meta:
         ordering = ['-movimiento__creado']
         verbose_name = 'Detalles de entrada'
@@ -88,11 +87,6 @@ class DetalleSalida(models.Model):
         verbose_name = 'Detalles de salida'
         verbose_name_plural = 'Detalles de salidas'
 
-    def procesar(self):
-        for item in self.movimiento.items.all():
-            item.asignar_unidades()
-        return True
-
     def __str__(self):
         return f"Detalle Salida de Movimiento {self.movimiento.id}"
 
@@ -102,10 +96,17 @@ class MovimientoItem(models.Model):
         Movimiento, on_delete=models.CASCADE, related_name='items'
     )
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
+    lote = models.ForeignKey(Lote, on_delete=models.PROTECT, null=True, blank=True) # Solo para salidas
     cantidad = models.PositiveIntegerField()
 
+    def save(self, *args, **kwargs):
+        # Si se indica lote, validar que el producto del lote coincida con el producto del item
+        if self.lote and self.lote.producto != self.producto:
+            raise ValueError('El lote especificado no corresponde al producto del item.')
+        return super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"{self.producto.codigo_interno} x {self.cantidad}"
+        return f'{self.producto.codigo_interno} x {self.cantidad}'
 
     # Entrada 
     def crear_lote(self):
@@ -123,17 +124,18 @@ class MovimientoItem(models.Model):
 
     # Salida
     def asignar_unidades(self):
-        disponibles = Unidad.objects.filter(
-            lote__producto=self.producto,
-            status='disponible'
-        ).order_by('id')[:self.cantidad]
+        if not self.lote:
+            raise ValueError('Lote debe estar especificado para asignar unidades.')
+        
+        disponibles = self.lote.unidades.filter(status='disponible').order_by('id')[:self.cantidad]
 
         if disponibles.count() < self.cantidad:
-            raise ValueError(f"No hay suficientes unidades de {self.producto.codigo_interno}")
+            raise ValueError(
+                f'No hay suficientes unidades de {self.producto.codigo_interno} en el lote {self.lote.codigo_lote}'
+            )
 
-        # cringe
         ids = disponibles.values_list('pk', flat=True)
-        Unidad.objects.filter(pk__in=ids).update(status='retirada', actualizado=timezone.now())
+        self.lote.unidades.filter(pk__in=ids).update(status='retirada', actualizado=timezone.now())
         return disponibles
     
     class Meta:

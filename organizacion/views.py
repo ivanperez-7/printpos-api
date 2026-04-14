@@ -25,7 +25,11 @@ class ClienteViewSet(viewsets.ModelViewSet):
             else:
                 qs = cliente.equipos.all()
 
-            equipos = qs.values('id', 'equipo__id', 'equipo__nombre', 'contador_uso', 'alias').distinct()
+            equipos = (
+                qs.filter(equipo__activo=True, equipo__marca__activo=True)
+                .values('id', 'equipo__id', 'equipo__nombre', 'contador_uso', 'alias')
+                .distinct()
+            )
             return Response(equipos)
 
         if request.method == 'POST':
