@@ -46,5 +46,5 @@ class ClienteViewSet(viewsets.ModelViewSet):
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.filter(is_active=True)
+    queryset = User.objects.filter(is_active=True).select_related('profile')
     serializer_class = UserSerializer

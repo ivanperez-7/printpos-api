@@ -33,6 +33,7 @@ class ProductoViewSet(viewsets.ModelViewSet):
                 queryset=Equipo.objects.filter(activo=True, marca__activo=True).select_related('marca')
             ),
         )
+        .annotate(cantidad_disponible=Count('lotes__unidades', filter=Q(lotes__unidades__status='disponible')))
         .distinct()
     )
     serializer_class = ProductoSerializer
@@ -41,10 +42,15 @@ class ProductoViewSet(viewsets.ModelViewSet):
 
 
 class LoteViewSet(viewsets.ModelViewSet):
-    queryset = Lote.objects.exclude(producto__status='inactivo').select_related('producto')
+    queryset = (
+        Lote.objects.exclude(producto__status='inactivo')
+        .select_related('producto')
+        .prefetch_related('producto__equipos', 'producto__equipos__marca')
+        .annotate(cantidad_restante=Count('unidades', filter=Q(unidades__status='disponible')))
+    )
     serializer_class = LoteSerializer
     filter_backends = [filters.DjangoFilterBackend]
-    filterset_fields = ['producto']
+    filterset_fields = ['producto', 'codigo_lote']
 
 
 class UnidadViewSet(viewsets.ModelViewSet):

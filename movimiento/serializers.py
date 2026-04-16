@@ -6,7 +6,7 @@ from shapeless_serializers.serializers import InlineShapelessModelSerializer
 from .models import Movimiento, MovimientoItem, DetalleEntrada, DetalleSalida
 from organizacion.models import Cliente
 from organizacion.serializers import UserSerializer
-from productos.models import Producto
+from productos.models import Lote, Producto
 
 
 class MovimientoItemSerializer(serializers.ModelSerializer):
@@ -17,6 +17,11 @@ class MovimientoItemSerializer(serializers.ModelSerializer):
         queryset=Producto.objects.all(),
         write_only=True,
         source='producto'
+    )
+    lote_id = serializers.PrimaryKeyRelatedField(
+        queryset=Lote.objects.all(),
+        write_only=True,
+        source='lote'
     )
 
     class Meta:
@@ -84,7 +89,6 @@ class MovimientoSerializer(serializers.ModelSerializer):
             # TODO: checar contadores del cliente
             ds = DetalleSalida.objects.create(movimiento=movimiento, **d_salida)
             if ds.cliente.equipos.filter(contador_uso__gte=0).exists():
-                pass
-                # raise serializers.ValidationError('No se puede generar movimiento para este cliente.')
+                raise serializers.ValidationError('No se puede generar movimiento para este cliente.')
 
         return movimiento

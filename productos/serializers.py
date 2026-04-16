@@ -82,7 +82,12 @@ class ProductoSerializer(serializers.ModelSerializer):
 
 
 class LoteSerializer(serializers.ModelSerializer):
+    class InlineProductoSerializer(ProductoSerializer):
+        class Meta(ProductoSerializer.Meta):
+            fields = ['id', 'codigo_interno', 'descripcion', 'equipos']
+
     cantidad_restante = serializers.SerializerMethodField()
+    producto = InlineProductoSerializer(read_only=True)
 
     class Meta:
         model = Lote

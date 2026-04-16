@@ -90,10 +90,6 @@ class Producto(models.Model):
         verbose_name = 'Producto'
         verbose_name_plural = 'Productos'
 
-    @property
-    def cantidad_disponible(self):
-        return Unidad.objects.filter(lote__producto=self, status='disponible').count()
-
     def __str__(self):
         return f'{self.codigo_interno} ({self.descripcion})'
 
@@ -112,10 +108,6 @@ class Lote(models.Model):
         verbose_name = 'Lote'
         verbose_name_plural = 'Lotes'
     
-    @property
-    def cantidad_restante(self):
-        return self.unidades.filter(status='disponible').count()
-
     def __str__(self):
         return f'Lote de {self.producto.codigo_interno}: {self.codigo_lote}'
 

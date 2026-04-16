@@ -10,7 +10,8 @@ from .serializers import MovimientoSerializer
 class MovimientoViewSet(viewsets.ModelViewSet):
     queryset = Movimiento.objects.all().select_related(
         'creado_por', 'user_aprueba',
-        'detalle_entrada__recibido_por',
+        'creado_por__profile', 'user_aprueba__profile',
+        'detalle_entrada__recibido_por', 'detalle_entrada__recibido_por__profile',
         'detalle_salida__cliente'
     ).prefetch_related('items', 'items__producto').distinct()
     
