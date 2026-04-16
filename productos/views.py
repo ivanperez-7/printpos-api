@@ -114,7 +114,7 @@ def dashboard_view(request):
                 .values('nombre', 'cantidad')
             ),
             'entradasChart': (
-                Movimiento.objects.filter(tipo='entrada', creado__gte=hace_30_dias)
+                Movimiento.objects.filter(tipo='salida', creado__gte=hace_30_dias)
                 .annotate(fecha_creado=TruncDate('creado'))
                 .values('fecha_creado')
                 .annotate(total=Count('id'))

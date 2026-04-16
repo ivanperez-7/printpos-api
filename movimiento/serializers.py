@@ -21,6 +21,7 @@ class MovimientoItemSerializer(serializers.ModelSerializer):
     lote_id = serializers.PrimaryKeyRelatedField(
         queryset=Lote.objects.all(),
         write_only=True,
+        required=False,
         source='lote'
     )
 

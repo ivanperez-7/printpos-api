@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from .models import Cliente
 from .serializers import *
 
-__all__ = ['ClienteViewSet', 'UserViewSet']
+__all__ = ['ClienteViewSet', 'UserViewSet', 'SucursalViewSet']
 
 
 class ClienteViewSet(viewsets.ModelViewSet):
@@ -48,3 +48,9 @@ class ClienteViewSet(viewsets.ModelViewSet):
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.filter(is_active=True).select_related('profile')
     serializer_class = UserSerializer
+
+
+class SucursalViewSet(viewsets.ModelViewSet):
+    queryset = Sucursal.objects.filter(activo=True)
+    serializer_class = SucursalSerializer
+    permission_classes = []
