@@ -114,7 +114,7 @@ def dashboard_view(request):
                 .values('fecha_creado')
                 .annotate(total=Count('id'))
             ),
-            'clientesChart': [{"tipo": "lol", "cantidad": 120}, {"tipo": "lol2", "cantidad": 57}],
+            'clientesChart': [{'tipo': 'lol', 'cantidad': 120}, {'tipo': 'lol2', 'cantidad': 57}],
             'productosBajos': (
                 productos.annotate(
                     stock=Count('lotes__unidades', filter=Q(lotes__unidades__status='disponible'))

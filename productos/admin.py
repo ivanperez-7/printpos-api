@@ -96,7 +96,7 @@ class ProductoAdmin(admin.ModelAdmin):
         )
     
     def equipos_list(self, obj: Producto):
-        return ", ".join([equipo.nombre for equipo in obj.equipos.all()]) if obj.equipos.exists() else "-"
+        return ', '.join([equipo.nombre for equipo in obj.equipos.all()]) if obj.equipos.exists() else '-'
 
 
 @admin.register(Lote)

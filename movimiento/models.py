@@ -31,17 +31,17 @@ class Movimiento(models.Model):
         verbose_name_plural = 'Movimientos'
 
     def __str__(self):
-        return f"Movimiento {self.id} ({self.tipo})"
+        return f'Movimiento {self.id} ({self.tipo})'
 
     @transaction.atomic
     def approve(self, user):
         if self.items.exclude(producto__status='activo').exists():
-            raise ValueError("No se pueden aprobar movimientos con productos inactivos.")
+            raise ValueError('No se pueden aprobar movimientos con productos inactivos.')
 
-        if user.profile.rol != "admin":
-            raise PermissionError("Solo administradores pueden aprobar movimientos.")
+        if user.profile.rol != 'admin':
+            raise PermissionError('Solo administradores pueden aprobar movimientos.')
         if self.aprobado:
-            raise ValueError("Movimiento ya aprobado.")
+            raise ValueError('Movimiento ya aprobado.')
 
         self.aprobado = True
         self.aprobado_fecha = timezone.now()
@@ -49,14 +49,14 @@ class Movimiento(models.Model):
         self.save()
 
         # Procesar cada item según el tipo de movimiento
-        if hasattr(self, "detalle_entrada"):
+        if hasattr(self, 'detalle_entrada'):
             for item in self.items.all():
                 item.crear_lote()
-        elif hasattr(self, "detalle_salida"):
+        elif hasattr(self, 'detalle_salida'):
             for item in self.items.all():
                 item.asignar_unidades()
         else:
-            raise RuntimeError("Movimiento sin detalle asociado.")
+            raise RuntimeError('Movimiento sin detalle asociado.')
 
 
 class DetalleEntrada(models.Model):
@@ -72,7 +72,7 @@ class DetalleEntrada(models.Model):
         verbose_name_plural = 'Detalles de entradas'
 
     def __str__(self):
-        return f"Detalle Entrada de Movimiento {self.movimiento.id}"
+        return f'Detalle Entrada de Movimiento {self.movimiento.id}'
 
 
 class DetalleSalida(models.Model):
@@ -88,7 +88,7 @@ class DetalleSalida(models.Model):
         verbose_name_plural = 'Detalles de salidas'
 
     def __str__(self):
-        return f"Detalle Salida de Movimiento {self.movimiento.id}"
+        return f'Detalle Salida de Movimiento {self.movimiento.id}'
 
 
 class MovimientoItem(models.Model):

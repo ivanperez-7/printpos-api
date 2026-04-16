@@ -24,6 +24,6 @@ class MovimientoViewSet(viewsets.ModelViewSet):
         try:
             movimiento = self.get_object()
             movimiento.approve(request.user)
-            return Response({"status": "aprobado"})
+            return Response({'status': 'aprobado'})
         except Exception as e:
-            return Response({"detail": str(e)}, status=500)
+            return Response({'detail': str(e)}, status=500)

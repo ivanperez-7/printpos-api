@@ -72,20 +72,20 @@ class MovimientoSerializer(serializers.ModelSerializer):
 
     @transaction.atomic
     def create(self, validated_data):
-        items_data = validated_data.pop("items")
-        d_entrada = validated_data.pop("detalle_entrada", None)
-        d_salida = validated_data.pop("detalle_salida", None)
+        items_data = validated_data.pop('items')
+        d_entrada = validated_data.pop('detalle_entrada', None)
+        d_salida = validated_data.pop('detalle_salida', None)
 
         if not items_data:
             raise serializers.ValidationError('No se recibieron items para el movimiento')
-
+  
         movimiento = Movimiento.objects.create(creado_por=self.context['request'].user, **validated_data)
-        for item in items_data:
-            MovimientoItem.objects.create(movimiento=movimiento, **item)
 
-        if movimiento.tipo == "entrada":
+        MovimientoItem.objects.bulk_create([MovimientoItem(movimiento=movimiento, **item) for item in items_data])
+
+        if movimiento.tipo == 'entrada':
             DetalleEntrada.objects.create(movimiento=movimiento, **d_entrada)
-        elif movimiento.tipo == "salida":
+        elif movimiento.tipo == 'salida':
             # TODO: checar contadores del cliente
             ds = DetalleSalida.objects.create(movimiento=movimiento, **d_salida)
             if ds.cliente.equipos.filter(contador_uso__gte=0).exists():
