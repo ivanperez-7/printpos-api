@@ -1,9 +1,10 @@
+from django.db.models import Prefetch
 from django_filters import rest_framework as filters
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .models import Movimiento
+from .models import Movimiento, MovimientoItem
 from .serializers import MovimientoSerializer
 
 
@@ -13,7 +14,12 @@ class MovimientoViewSet(viewsets.ModelViewSet):
         'creado_por__profile', 'user_aprueba__profile',
         'detalle_entrada__recibido_por', 'detalle_entrada__recibido_por__profile',
         'detalle_salida__cliente'
-    ).prefetch_related('items', 'items__producto').distinct()
+    ).prefetch_related(
+        Prefetch(
+            'items',
+            queryset=MovimientoItem.objects.select_related('producto')
+        )
+    ).distinct()
     
     serializer_class = MovimientoSerializer
     filter_backends = [filters.DjangoFilterBackend]

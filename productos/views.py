@@ -45,7 +45,12 @@ class LoteViewSet(viewsets.ModelViewSet):
     queryset = (
         Lote.objects.exclude(producto__status='inactivo')
         .select_related('producto')
-        .prefetch_related('producto__equipos', 'producto__equipos__marca')
+        .prefetch_related(
+            Prefetch(
+                'producto__equipos',
+                queryset=Equipo.objects.filter(activo=True, marca__activo=True).select_related('marca')
+            ),
+        )
         .annotate(cantidad_restante=Count('unidades', filter=Q(unidades__status='disponible')))
     )
     serializer_class = LoteSerializer
@@ -116,12 +121,9 @@ def dashboard_view(request):
             ),
             'clientesChart': [{'tipo': 'lol', 'cantidad': 120}, {'tipo': 'lol2', 'cantidad': 57}],
             'productosBajos': (
-                productos.annotate(
-                    stock=Count('lotes__unidades', filter=Q(lotes__unidades__status='disponible'))
-                )
-                .filter(stock__lte=F('min_stock'))
-                .order_by('stock')
-                .values('descripcion', 'categoria__nombre', 'stock')
+                productos.filter(cantidad_disponible__lte=F('min_stock'))
+                .order_by('cantidad_disponible')
+                .values('descripcion', 'categoria__nombre', 'cantidad_disponible')
             ),
         }
     )
