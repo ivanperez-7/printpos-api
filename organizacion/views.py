@@ -1,4 +1,6 @@
 from django.contrib.auth.models import User
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -12,6 +14,9 @@ __all__ = ['ClienteViewSet', 'UserViewSet', 'SucursalViewSet']
 class ClienteViewSet(viewsets.ModelViewSet):
     queryset = Cliente.objects.filter(activo=True)
     serializer_class = ClienteSerializer
+
+    def get_queryset(self):
+        return self.queryset.filter(sucursal=self.request.branch_id)
 
     @action(detail=True, methods=['get', 'post'])
     def equipos(self, request, pk=None):
@@ -54,3 +59,7 @@ class SucursalViewSet(viewsets.ModelViewSet):
     queryset = Sucursal.objects.filter(activo=True)
     serializer_class = SucursalSerializer
     permission_classes = []
+
+    @method_decorator(cache_page(60 * 60 * 2))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)

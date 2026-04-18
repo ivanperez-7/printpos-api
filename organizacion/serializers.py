@@ -13,7 +13,7 @@ class ClienteSerializer(serializers.ModelSerializer):
 class SucursalSerializer(serializers.ModelSerializer):
     class Meta:
         model = Sucursal
-        fields = '__all__'
+        fields = ['id', 'nombre']
 
 
 class PerfilUsuarioSerializer(serializers.ModelSerializer):

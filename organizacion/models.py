@@ -23,6 +23,8 @@ class Cliente(models.Model):
     creado = models.DateTimeField(auto_now_add=True)
     actualizado = models.DateTimeField(auto_now=True)
 
+    sucursal = models.ForeignKey('Sucursal', on_delete=models.CASCADE, related_name='clientes')
+
     class Meta:
         ordering = ['nombre']
 
