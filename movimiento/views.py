@@ -17,7 +17,7 @@ class MovimientoViewSet(viewsets.ModelViewSet):
     ).prefetch_related(
         Prefetch(
             'items',
-            queryset=MovimientoItem.objects.select_related('producto')
+            queryset=MovimientoItem.objects.select_related('producto', 'lote')
         )
     ).distinct()
     

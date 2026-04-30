@@ -65,7 +65,6 @@ class Producto(models.Model):
     STATUS_CHOICES = [
         ('activo', 'Activo'),
         ('inactivo', 'Inactivo'),
-        ('descontinuado', 'Descontinuado'),
     ]
 
     codigo_interno = models.CharField(max_length=50, unique=True)
@@ -89,6 +88,11 @@ class Producto(models.Model):
     class Meta:
         verbose_name = 'Producto'
         verbose_name_plural = 'Productos'
+    
+    def save(self, *args, **kwargs):
+        if self.status == 'inactivo' and self.movimientoitem_set.exists():
+            raise ValueError('No se puede desactivar producto utilizado en movimientos.')
+        return super().save(*args, **kwargs)
 
     def __str__(self):
         return f'{self.codigo_interno} ({self.descripcion})'

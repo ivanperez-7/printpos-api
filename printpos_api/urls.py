@@ -1,7 +1,9 @@
 from django.contrib import admin
 from django.urls import path, include
+from debug_toolbar.toolbar import debug_toolbar_urls
 
 from system.views import CookieTokenObtainPairView, CookieTokenRefreshView, logout_view, me
+from django.conf import settings
 
 
 urlpatterns = [
@@ -18,3 +20,6 @@ urlpatterns = [
 
 admin.site.site_header = 'PrintPOS DB'
 admin.site.site_title = 'PrintPOS DB'
+
+if settings.DEBUG:
+    urlpatterns += debug_toolbar_urls()

@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.db.models import Count, Q
 
 from .models import Marca, Categoría, Proveedor, Producto, Equipo, Lote, Unidad
 
@@ -116,6 +117,10 @@ class LoteAdmin(admin.ModelAdmin):
 
     def cantidad_restante(self, obj: Lote):
         return obj.cantidad_restante
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.annotate(cantidad_restante=Count('unidades', filter=Q(unidades__status='disponible')))
 
 
 @admin.register(Unidad)

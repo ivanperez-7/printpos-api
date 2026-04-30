@@ -31,6 +31,11 @@ CORS_ALLOW_HEADERS = [
     'x-branch-id'
 ]
 
+INTERNAL_IPS = [
+    '127.0.0.1',
+    'localhost',
+]
+
 if DEBUG:
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
@@ -71,9 +76,11 @@ INSTALLED_APPS = [
 
 if DEBUG:
     INSTALLED_APPS.append('django_extensions')
+    INSTALLED_APPS.append('debug_toolbar')
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -112,7 +119,10 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ),
-    'DEFAULT_RENDERER_CLASSES': ('rest_framework.renderers.JSONRenderer',),
+    'DEFAULT_RENDERER_CLASSES': (
+        ('rest_framework.renderers.BrowsableAPIRenderer', 'rest_framework.renderers.JSONRenderer', ) if DEBUG
+        else ('rest_framework.renderers.JSONRenderer',)
+    ),
     'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend',),
 }
 

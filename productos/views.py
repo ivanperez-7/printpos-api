@@ -1,5 +1,5 @@
-from django.db.models import Count, Q, F, Prefetch
-from django.db.models.functions import TruncDate
+from django.db.models import Count, Q, F, OuterRef, Prefetch, Subquery, IntegerField, Value
+from django.db.models.functions import Coalesce, TruncDate
 from django.utils import timezone
 from django_filters import rest_framework as filters
 from rest_framework import viewsets
@@ -24,21 +24,34 @@ __all__ = [
 
 
 class ProductoViewSet(viewsets.ModelViewSet):
-    queryset = (
-        Producto.objects.exclude(status='inactivo')
-        .select_related('categoria', 'proveedor')
-        .prefetch_related(
-            Prefetch(
-                'equipos',
-                queryset=Equipo.objects.filter(activo=True, marca__activo=True).select_related('marca')
-            ),
-        )
-        .annotate(cantidad_disponible=Count('lotes__unidades', filter=Q(lotes__unidades__status='disponible')))
-        .distinct()
-    )
     serializer_class = ProductoSerializer
     filter_backends = [filters.DjangoFilterBackend]
     filterset_fields = ['sku', 'lotes__codigo_lote']
+
+    def get_queryset(self):
+        unidades_subquery = (
+            Unidad.objects.filter(lote__producto=OuterRef('pk'), status='disponible')
+            .values('lote__producto')
+            .annotate(total=Count('id'))
+            .values('total')[:1]
+        )
+
+        return (
+            Producto.objects.exclude(status='inactivo')
+            .select_related('categoria', 'proveedor')
+            .prefetch_related(
+                Prefetch(
+                    'equipos',
+                    queryset=Equipo.objects.filter(activo=True, marca__activo=True).select_related('marca')
+                ),
+            )
+            .annotate(
+                cantidad_disponible=Coalesce(
+                    Subquery(unidades_subquery, output_field=IntegerField()),
+                    Value(0)
+                )
+            )
+        )
 
 
 class LoteViewSet(viewsets.ModelViewSet):
@@ -89,7 +102,7 @@ class ProveedorViewSet(viewsets.ModelViewSet):
 
 @api_view()
 def dashboard_view(request):
-    productos = ProductoViewSet.queryset.all()
+    productos = ProductoViewSet().get_queryset().all()
     lotes = LoteViewSet.queryset.all()
     categorias = CategoriaViewSet.queryset.all()
     proveedores = ProveedorViewSet.queryset.all()

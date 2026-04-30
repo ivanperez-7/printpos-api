@@ -60,7 +60,7 @@ class ProductoSerializer(serializers.ModelSerializer):
         source='categoria'
     )
     equipos_id = serializers.PrimaryKeyRelatedField(
-        queryset=Equipo.objects.all(),
+        queryset=Equipo.objects.all().select_related('marca'),
         write_only=True,
         many=True,
         source='equipos'
@@ -78,7 +78,9 @@ class ProductoSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'creado', 'actualizado']
 
     def get_cantidad_disponible(self, instance: Producto):
-        return instance.cantidad_disponible
+        if hasattr(instance, 'cantidad_disponible'):
+            return instance.cantidad_disponible
+        return Unidad.objects.filter(lote__producto=instance, status='disponible').count()
 
 
 class LoteSerializer(serializers.ModelSerializer):
