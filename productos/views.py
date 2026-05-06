@@ -1,4 +1,15 @@
-from django.db.models import Count, Q, F, OuterRef, Prefetch, Subquery, IntegerField, Value
+from django.db.models import (
+    Count,
+    Q,
+    F,
+    OuterRef,
+    Prefetch,
+    Subquery,
+    IntegerField,
+    Value,
+    Case,
+    When
+)
 from django.db.models.functions import Coalesce, TruncDate
 from django.utils import timezone
 from django_filters import rest_framework as filters
@@ -126,17 +137,22 @@ def dashboard_view(request):
                 .filter(cantidad__gt=0)
                 .values('nombre', 'cantidad')
             ),
-            'entradasChart': (
+            'salidasChart': (
                 Movimiento.objects.filter(tipo='salida', creado__gte=hace_30_dias)
                 .annotate(fecha_creado=TruncDate('creado'))
                 .values('fecha_creado')
                 .annotate(total=Count('id'))
             ),
-            'clientesChart': clientes.values('tipo').annotate(cantidad=Count('tipo')),
+            'clientesChart': clientes.annotate(
+                tipo2=Case(
+                    When(tipo='fisica', then=Value('Física')),
+                    default=Value('Moral')
+                )
+            ).values('tipo2').annotate(cantidad=Count('tipo2')),
             'productosBajos': (
                 productos.filter(cantidad_disponible__lte=F('min_stock'))
                 .order_by('cantidad_disponible')
-                .values('descripcion', 'categoria__nombre', 'cantidad_disponible')
+                .values('id', 'descripcion', 'categoria__nombre', 'cantidad_disponible', 'min_stock')
             ),
         }
     )
