@@ -10,9 +10,8 @@ from .serializers import MovimientoSerializer
 
 class MovimientoViewSet(viewsets.ModelViewSet):
     queryset = Movimiento.objects.all().select_related(
-        'creado_por', 'user_aprueba',
         'creado_por__profile', 'user_aprueba__profile',
-        'detalle_entrada__recibido_por', 'detalle_entrada__recibido_por__profile',
+        'detalle_entrada__recibido_por__profile',
         'detalle_salida__cliente'
     ).prefetch_related(
         Prefetch(
@@ -24,6 +23,18 @@ class MovimientoViewSet(viewsets.ModelViewSet):
     serializer_class = MovimientoSerializer
     filter_backends = [filters.DjangoFilterBackend]
     filterset_fields = ['items__producto', 'detalle_salida__cliente']
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        fecha_inicio = self.request.query_params.get('fechaInicio')
+        fecha_fin = self.request.query_params.get('fechaFin')
+
+        if fecha_inicio:
+            queryset = queryset.filter(creado__date__gte=fecha_inicio)
+        if fecha_fin:
+            queryset = queryset.filter(creado__date__lte=fecha_fin)
+
+        return queryset
 
     @action(detail=True, methods=['post'])
     def aprobar(self, request, pk=None):

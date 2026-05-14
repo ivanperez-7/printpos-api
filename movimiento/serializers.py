@@ -93,5 +93,13 @@ class MovimientoSerializer(WritableNestedModelSerializer):
                 raise serializers.ValidationError('El detalle de salida es requerido para movimientos de tipo salida.')
             data.pop('detalle_entrada', None)
 
+            # Chequeo de disponibilidad de unidades para cada item
+            for item in data['items']:
+                count = item['lote'].unidades.filter(status='disponible').count()
+                if count < item['cantidad']:
+                    raise serializers.ValidationError(
+                        f'No hay suficientes unidades disponibles ({count}) en el lote {item["lote"].codigo_lote} para la salida.'
+                    )
+
         data['creado_por'] = self.context['request'].user
         return data

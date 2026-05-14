@@ -68,6 +68,8 @@ class ProductoAdmin(admin.ModelAdmin):
     search_fields = ('codigo_interno', 'descripcion')
     list_per_page = 25
     ordering = ('codigo_interno',)
+    list_select_related = ('categoria', 'proveedor')
+    list_prefetch_related = ('equipos',)
 
     readonly_fields = ('creado', 'actualizado')
 
@@ -88,13 +90,6 @@ class ProductoAdmin(admin.ModelAdmin):
             'fields': ('status', 'creado', 'actualizado')
         }),
     )
-
-    def get_queryset(self, request):
-        return (
-            super()
-            .get_queryset(request)
-            .select_related('categoria')
-        )
     
     def equipos_list(self, obj: Producto):
         return ', '.join([equipo.nombre for equipo in obj.equipos.all()]) if obj.equipos.exists() else '-'

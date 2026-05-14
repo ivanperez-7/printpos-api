@@ -5,18 +5,17 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .models import Cliente
+from .queries import clientes_queryset
 from .serializers import *
 
 __all__ = ['ClienteViewSet', 'UserViewSet', 'SucursalViewSet']
 
 
 class ClienteViewSet(viewsets.ModelViewSet):
-    queryset = Cliente.objects.filter(activo=True)
     serializer_class = ClienteSerializer
 
     def get_queryset(self):
-        return self.queryset.filter(sucursal=self.request.branch_id)
+        return clientes_queryset(self.request.branch_id)
 
     @action(detail=True, methods=['get', 'post'])
     def equipos(self, request, pk=None):

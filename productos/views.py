@@ -1,26 +1,16 @@
-from django.db.models import (
-    Count,
-    Q,
-    F,
-    OuterRef,
-    Prefetch,
-    Subquery,
-    IntegerField,
-    Value,
-    Case,
-    When
-)
-from django.db.models.functions import Coalesce, TruncDate
+from django.db.models import Count, Q, F
+from django.db.models.functions import TruncDate
 from django.utils import timezone
 from django_filters import rest_framework as filters
 from rest_framework import viewsets
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from .models import Producto, Categoría, Marca, Proveedor, Equipo, Lote, Unidad
+from .models import Categoría, Marca, Proveedor, Equipo, Unidad
 from .serializers import *
 from movimiento.models import Movimiento
-from organizacion.views import ClienteViewSet
+from organizacion.queries import clientes_queryset
+from productos.queries import lotes_queryset, productos_queryset
 
 __all__ = [
     'ProductoViewSet',
@@ -37,49 +27,19 @@ __all__ = [
 class ProductoViewSet(viewsets.ModelViewSet):
     serializer_class = ProductoSerializer
     filter_backends = [filters.DjangoFilterBackend]
-    filterset_fields = ['sku', 'lotes__codigo_lote']
+    filterset_fields = ['sku', 'categoria', 'equipos__marca', 'equipos']
 
     def get_queryset(self):
-        unidades_subquery = (
-            Unidad.objects.filter(lote__producto=OuterRef('pk'), status='disponible')
-            .values('lote__producto')
-            .annotate(total=Count('id'))
-            .values('total')[:1]
-        )
-
-        return (
-            Producto.objects.exclude(status='inactivo')
-            .select_related('categoria', 'proveedor')
-            .prefetch_related(
-                Prefetch(
-                    'equipos',
-                    queryset=Equipo.objects.filter(activo=True, marca__activo=True).select_related('marca')
-                ),
-            )
-            .annotate(
-                cantidad_disponible=Coalesce(
-                    Subquery(unidades_subquery, output_field=IntegerField()),
-                    Value(0)
-                )
-            )
-        )
+        return productos_queryset()
 
 
 class LoteViewSet(viewsets.ModelViewSet):
-    queryset = (
-        Lote.objects.exclude(producto__status='inactivo')
-        .select_related('producto')
-        .prefetch_related(
-            Prefetch(
-                'producto__equipos',
-                queryset=Equipo.objects.filter(activo=True, marca__activo=True).select_related('marca')
-            ),
-        )
-        .annotate(cantidad_restante=Count('unidades', filter=Q(unidades__status='disponible')))
-    )
     serializer_class = LoteSerializer
     filter_backends = [filters.DjangoFilterBackend]
     filterset_fields = ['producto', 'codigo_lote']
+
+    def get_queryset(self):
+        return lotes_queryset()
 
 
 class UnidadViewSet(viewsets.ModelViewSet):
@@ -107,19 +67,21 @@ class EquipoViewSet(viewsets.ModelViewSet):
 
 
 class ProveedorViewSet(viewsets.ModelViewSet):
-    queryset = Proveedor.objects.all()
+    queryset = Proveedor.objects.filter(activo=True)
     serializer_class = ProveedorSerializer
 
 
 @api_view()
 def dashboard_view(request):
-    productos = ProductoViewSet().get_queryset().all()
-    lotes = LoteViewSet.queryset.all()
-    categorias = CategoriaViewSet.queryset.all()
-    proveedores = ProveedorViewSet.queryset.all()
-    clientes = ClienteViewSet.queryset.all()
+    productos = productos_queryset()
+    lotes = lotes_queryset()
+    categorias = Categoría.objects.all()
+    proveedores = Proveedor.objects.filter(activo=True)
+    clientes = clientes_queryset(request.branch_id)
 
-    hace_30_dias = timezone.now() - timezone.timedelta(days=30)
+    hace_30_dias = (timezone.now() - timezone.timedelta(days=30)).date()
+
+    movs_filter = Q(movimientoitem__movimiento__creado__date__gte=hace_30_dias, movimientoitem__movimiento__aprobado=True)
 
     return Response(
         {
@@ -131,27 +93,31 @@ def dashboard_view(request):
                 'clientes': clientes.count(),
             },
             'categoriasChart': (
-                categorias.annotate(
+                categorias.values('nombre').annotate(
                     cantidad=Count('producto', filter=Q(producto__status='activo'))
                 )
                 .filter(cantidad__gt=0)
-                .values('nombre', 'cantidad')
             ),
-            'salidasChart': (
-                Movimiento.objects.filter(tipo='salida', creado__gte=hace_30_dias)
+            'movimientosChart': (
+                Movimiento.objects.filter(creado__date__gte=hace_30_dias, aprobado=True)
                 .annotate(fecha_creado=TruncDate('creado'))
                 .values('fecha_creado')
-                .annotate(total=Count('id'))
-            ),
-            'clientesChart': clientes.annotate(
-                tipo2=Case(
-                    When(tipo='fisica', then=Value('Física')),
-                    default=Value('Moral')
+                .annotate(
+                    entradas=Count('id', filter=Q(tipo='entrada')),
+                    salidas=Count('id', filter=Q(tipo='salida'))
                 )
-            ).values('tipo2').annotate(cantidad=Count('tipo2')),
+            ),
+            'topProductosChart': (
+                productos.values('id', 'codigo_interno')
+                .annotate(
+                    total_movimientos=Count('movimientoitem__movimiento', distinct=True, filter=movs_filter)
+                )
+                .filter(total_movimientos__gt=0)
+                .order_by('-total_movimientos')[:10]
+            ),
             'productosBajos': (
-                productos.filter(cantidad_disponible__lte=F('min_stock'))
-                .order_by('cantidad_disponible')
+                productos.filter(cantidad_disponible__lt=F('min_stock'))
+                .order_by('-cantidad_disponible')
                 .values('id', 'descripcion', 'categoria__nombre', 'cantidad_disponible', 'min_stock')
             ),
         }

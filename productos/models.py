@@ -113,7 +113,7 @@ class Lote(models.Model):
         verbose_name_plural = 'Lotes'
     
     def __str__(self):
-        return f'Lote de {self.producto.codigo_interno}: {self.codigo_lote}'
+        return self.codigo_lote
 
 
 class Unidad(models.Model):
