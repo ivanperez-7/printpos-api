@@ -1,5 +1,4 @@
 from django.db.models import Count, Q, F
-from django.db.models.functions import TruncDate
 from django.utils import timezone
 from django_filters import rest_framework as filters
 from rest_framework import viewsets
@@ -74,10 +73,7 @@ class ProveedorViewSet(viewsets.ModelViewSet):
 @api_view()
 def dashboard_view(request):
     productos = productos_queryset()
-    lotes = lotes_queryset()
     categorias = Categoría.objects.all()
-    proveedores = Proveedor.objects.filter(activo=True)
-    clientes = clientes_queryset(request.branch_id)
 
     hace_30_dias = (timezone.now() - timezone.timedelta(days=30)).date()
 
@@ -87,10 +83,10 @@ def dashboard_view(request):
         {
             'stats': {
                 'productos': productos.count(),
-                'lotes': lotes.count(),
+                'lotes': lotes_queryset().filter(cantidad_restante__gt=0).count(),
                 'categorias': categorias.count(),
-                'proveedores': proveedores.count(),
-                'clientes': clientes.count(),
+                'proveedores': Proveedor.objects.filter(activo=True).count(),
+                'clientes': clientes_queryset(request.branch_id).count(),
             },
             'categoriasChart': (
                 categorias.values('nombre').annotate(
@@ -100,8 +96,7 @@ def dashboard_view(request):
             ),
             'movimientosChart': (
                 Movimiento.objects.filter(creado__date__gte=hace_30_dias, aprobado=True)
-                .annotate(fecha_creado=TruncDate('creado'))
-                .values('fecha_creado')
+                .values(fecha_creado=F('creado__date'))
                 .annotate(
                     entradas=Count('id', filter=Q(tipo='entrada')),
                     salidas=Count('id', filter=Q(tipo='salida'))

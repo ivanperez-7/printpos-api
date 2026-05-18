@@ -44,3 +44,7 @@ class MovimientoViewSet(viewsets.ModelViewSet):
             return Response({'status': 'aprobado'})
         except Exception as e:
             return Response({'detail': str(e)}, status=500)
+    
+    @action(detail=False, methods=['get'])
+    def get_oldest(self, request):
+        return Response(Movimiento.objects.order_by('id').first().creado.date())
