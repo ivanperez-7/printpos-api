@@ -83,3 +83,23 @@ def logout_view(request):
 class ConfiguracionSistemaViewSet(viewsets.ModelViewSet):
     queryset = ConfiguracionSistema.objects.all()
     serializer_class = ConfiguracionSistemaSerializer
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def chat(request):
+    from utils.chatbot import obtener_agente
+
+    pregunta = request.data.get('pregunta')
+    if not pregunta:
+        return Response(
+            {'detail': 'El campo "pregunta" es requerido.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        agente = obtener_agente()
+        resultado = agente.invoke({"input": pregunta})
+        return Response({'respuesta': resultado['output']})
+    except Exception as e:
+        return Response({'detail': str(e)}, status=500)

@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from debug_toolbar.toolbar import debug_toolbar_urls
 
-from system.views import CookieTokenObtainPairView, CookieTokenRefreshView, logout_view, me
+from system.views import CookieTokenObtainPairView, CookieTokenRefreshView, logout_view, me, chat
 from django.conf import settings
 
 
@@ -15,6 +15,7 @@ urlpatterns = [
     path('api/v1/organizacion/', include('organizacion.urls')),
     path('api/v1/productos/', include('productos.urls')),
     path('api/v1/movimientos/', include('movimiento.urls')),
+    path('api/v1/chat/', chat, name='chat'),
     path('api/v1/system/', include('system.urls')),
 ]
 

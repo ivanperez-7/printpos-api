@@ -76,8 +76,8 @@ class MovimientoSerializer(WritableNestedModelSerializer):
     creado_por = UserSerializer(read_only=True)
     user_aprueba = UserSerializer(read_only=True)
     items = MovimientoItemSerializer(many=True)
-    detalle_entrada = DetalleEntradaSerializer(required=False)
-    detalle_salida = DetalleSalidaSerializer(required=False)
+    detalle_entrada = DetalleEntradaSerializer(required=False, allow_null=True)
+    detalle_salida = DetalleSalidaSerializer(required=False, allow_null=True)
 
     class Meta:
         model = Movimiento
