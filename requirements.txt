@@ -8,6 +8,7 @@ djangorestframework_simplejwt==5.5.1
 drf-shapeless-serializers==1.0.6
 drf-writable-nested==0.7.2
 gunicorn==23.0.0
+pdfplumber==0.11.4
 psycopg2==2.9.10
 python-dotenv==1.2.1
 pytz==2025.2
