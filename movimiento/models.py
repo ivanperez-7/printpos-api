@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from django.db import models, transaction
 from django.utils import timezone
 
-from organizacion.models import Cliente
+from organizacion.models import Cliente, EquipoCliente
 from productos.models import Producto, Lote, Unidad
 
 
@@ -54,6 +54,7 @@ class Movimiento(models.Model):
                 item.crear_lote()
         elif hasattr(self, 'detalle_salida'):
             for item in self.items.all():
+                item.verificar_vida_util()
                 item.asignar_unidades()
         else:
             raise RuntimeError('Movimiento sin detalle asociado.')
@@ -96,8 +97,14 @@ class MovimientoItem(models.Model):
         Movimiento, on_delete=models.CASCADE, related_name='items'
     )
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
-    lote = models.ForeignKey(Lote, on_delete=models.PROTECT, null=True, blank=True) # Solo para salidas
     cantidad = models.PositiveIntegerField()
+
+    # Campos únicamente para movimientos de salida
+    lote = models.ForeignKey(Lote, on_delete=models.PROTECT, null=True, blank=True)
+    equipo_cliente = models.ForeignKey(
+        EquipoCliente, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    contador_uso_snapshot = models.PositiveIntegerField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
         # Si se indica lote, validar que el producto del lote coincida con el producto del item
@@ -108,7 +115,7 @@ class MovimientoItem(models.Model):
     def __str__(self):
         return f'{self.producto.codigo_interno} x {self.cantidad}'
 
-    # Entrada 
+    # Entrada
     def crear_lote(self):
         # TODO: da error en SQL para un movimiento con items con el mismo producto
         codigo = f'{self.producto.codigo_interno}-{timezone.now().strftime("%Y%m%d%H%M%S")}'
@@ -124,10 +131,35 @@ class MovimientoItem(models.Model):
         return lote
 
     # Salida
+    def verificar_vida_util(self):
+        if not self.equipo_cliente:
+            raise ValueError(f'Item {self.producto.codigo_interno} no tiene equipo_cliente asignado.')
+
+        producto = self.producto
+        eq_cli = self.equipo_cliente
+
+        ultima = MovimientoItem.objects.filter(
+            producto=producto,
+            movimiento__detalle_salida__cliente=eq_cli.cliente,
+            equipo_cliente=eq_cli,
+            contador_uso_snapshot__isnull=False
+        ).exclude(pk=self.pk).order_by('-movimiento__creado').first()
+
+        if ultima:
+            uso_desde_ultima = eq_cli.contador_uso - ultima.contador_uso_snapshot
+            if uso_desde_ultima < producto.vida_util:
+                raise ValueError(
+                    f'{producto.codigo_interno} requiere {producto.vida_util} unidades de uso '
+                    f'entre entregas. Solo se han consumido {uso_desde_ultima} desde la última entrega.'
+                )
+
+        self.contador_uso_snapshot = eq_cli.contador_uso
+        self.save(update_fields=['contador_uso_snapshot'])
+
     def asignar_unidades(self):
         if not self.lote:
             raise ValueError('Lote debe estar especificado para asignar unidades.')
-        
+
         disponibles = self.lote.unidades.filter(status='disponible').order_by('id')[:self.cantidad]
 
         if disponibles.count() < self.cantidad:
@@ -138,7 +170,7 @@ class MovimientoItem(models.Model):
         ids = disponibles.values_list('pk', flat=True)
         self.lote.unidades.filter(pk__in=ids).update(status='retirada', actualizado=timezone.now())
         return disponibles
-    
+
     class Meta:
         ordering = ['-movimiento__creado', 'producto__codigo_interno']
         verbose_name = 'Item de movimiento'

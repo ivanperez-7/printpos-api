@@ -1,5 +1,6 @@
 import uuid
 
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils import timezone
 
@@ -79,6 +80,7 @@ class Producto(models.Model):
 
     sku = models.CharField(max_length=255, unique=True)
     min_stock = models.PositiveIntegerField()
+    vida_util = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1)])
     proveedor = models.ForeignKey(Proveedor, on_delete=models.SET_NULL, null=True, blank=True)
 
     creado = models.DateTimeField(default=timezone.now)

@@ -4,7 +4,7 @@ from rest_framework import serializers
 from shapeless_serializers.serializers import InlineShapelessModelSerializer
 
 from .models import Movimiento, MovimientoItem, DetalleEntrada, DetalleSalida
-from organizacion.models import Cliente
+from organizacion.models import Cliente, EquipoCliente
 from organizacion.serializers import UserSerializer
 from productos.models import Lote, Producto
 from utils.validators import validar_factura_entrada
@@ -27,6 +27,15 @@ class MovimientoItemSerializer(serializers.ModelSerializer):
         write_only=True,
         required=False,
         source='lote'
+    )
+    equipo_cliente = InlineShapelessModelSerializer(
+        model=EquipoCliente, fields=['id', 'alias', 'contador_uso'], read_only=True
+    )
+    equipo_cliente_id = serializers.PrimaryKeyRelatedField(
+        queryset=EquipoCliente.objects.all(),
+        write_only=True,
+        required=False,
+        source='equipo_cliente'
     )
 
     class Meta:
@@ -93,7 +102,6 @@ class MovimientoSerializer(WritableNestedModelSerializer):
             data.pop('detalle_salida', None)
 
         if tipo == 'salida':
-            # TODO: checar contadores del cliente
             if not data.get('detalle_salida'):
                 raise serializers.ValidationError('El detalle de salida es requerido para movimientos de tipo salida.')
             data.pop('detalle_entrada', None)
