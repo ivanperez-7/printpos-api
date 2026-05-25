@@ -1,11 +1,10 @@
-import imaplib
-import email
 import io
-import os
 import re
 
 import pdfplumber
 from rest_framework import serializers
+
+from .gmail.client import GmailApi
 
 
 class ValidationError(serializers.ValidationError):
@@ -14,54 +13,15 @@ class ValidationError(serializers.ValidationError):
 
 class FacturaValidator:
     def __init__(self):
-        self.email_host = os.getenv('EMAIL_HOST')
-        self.email_port = os.getenv('EMAIL_PORT')
-        self.email_username = os.getenv('EMAIL_USERNAME')
-        self.email_password = os.getenv('EMAIL_PASSWORD')
+        self.gmail = GmailApi()
 
-    def _connect(self):
-        mail = imaplib.IMAP4_SSL(str(self.email_host), int(self.email_port))
-        mail.login(str(self.email_username), str(self.email_password))
-        mail.select('INBOX')
-        return mail
-
-    def _buscar_correo_por_factura(self, numero_factura):
-        mail = self._connect()
-        search_criteria = f'SUBJECT "{numero_factura}"'
-
-        try:
-            status, messages = mail.search(None, search_criteria)
-            if status != 'OK':
-                mail.logout()
-                return None
-
-            email_ids = messages[0].split()
-            if not email_ids:
-                mail.logout()
-                return None
-
-            latest_email_id = email_ids[-1]
-            status, msg_data = mail.fetch(latest_email_id, '(RFC822)')
-
-            if status != 'OK':
-                mail.logout()
-                return None
-
-            msg = email.message_from_bytes(msg_data[0][1])
-            mail.logout()
-            return msg
-        except Exception as e:
-            try:
-                mail.logout()
-            except:
-                pass
-            raise ValidationError(f'Error al buscar correo: {str(e)}')
-
-    def _extraer_pdf_de_correo(self, msg):
-        for part in msg.walk():
-            if part.get_content_type() == 'application/pdf':
-                return part.get_payload(decode=True)
-        return None
+    def _buscar_pdf_por_factura(self, numero_factura):
+        mensajes = self.gmail.find_emails(f"subject:{numero_factura}")
+        if not mensajes:
+            return None
+        msg = self.gmail.get_message(mensajes[0]["id"])
+        pdfs = self.gmail.find_pdf_attachments(msg)
+        return pdfs[0] if pdfs else None
 
     def _extraer_texto_de_pdf(self, pdf_data):
         texto_completo = []
@@ -102,18 +62,10 @@ class FacturaValidator:
         return False
 
     def validar(self, numero_factura, items):
-        if not all([self.email_host, self.email_port, self.email_username, self.email_password]):
-            raise ValidationError('Credenciales de correo no configuradas en el entorno.')
-
-        msg = self._buscar_correo_por_factura(numero_factura)
-
-        if not msg:
-            raise ValidationError(f'No se encontró ningún correo con el número de factura {numero_factura}.')
-
-        pdf_data = self._extraer_pdf_de_correo(msg)
+        pdf_data = self._buscar_pdf_por_factura(numero_factura)
 
         if not pdf_data:
-            raise ValidationError('No se encontró ningún PDF adjunto en el correo.')
+            raise ValidationError(f'No se encontró ningún correo con el número de factura {numero_factura}.')
 
         texto = self._extraer_texto_de_pdf(pdf_data)
 
