@@ -31,4 +31,4 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email', 'profile', 'full_name']
 
     def get_full_name(self, obj: User):
-        return obj.get_full_name()
+        return obj.get_full_name() or obj.username

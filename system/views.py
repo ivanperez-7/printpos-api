@@ -2,13 +2,13 @@ from django.conf import settings
 from django.middleware.csrf import get_token
 from django.urls import reverse
 from rest_framework import status, viewsets
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from .models import ConfiguracionSistema
-from .serializers import ConfiguracionSistemaSerializer
+from .models import AlertaInventario, ConfiguracionSistema
+from .serializers import AlertaInventarioSerializer, ConfiguracionSistemaSerializer
 from organizacion.serializers import UserSerializer
 
 
@@ -83,6 +83,69 @@ def logout_view(request):
 class ConfiguracionSistemaViewSet(viewsets.ModelViewSet):
     queryset = ConfiguracionSistema.objects.all()
     serializer_class = ConfiguracionSistemaSerializer
+
+
+class AlertaViewSet(viewsets.ModelViewSet):
+    queryset = AlertaInventario.objects.select_related('producto').all()
+    serializer_class = AlertaInventarioSerializer
+    filterset_fields = ['tipo_alerta', 'resuelto']
+    http_method_names = ['get', 'patch', 'post']
+
+    def create(self, request, *args, **kwargs):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def update(self, request, *args, **kwargs):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def destroy(self, request, *args, **kwargs):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+        no_leidas = AlertaInventario.objects.filter(resuelto=False).count()
+        
+        return Response({
+            'count': len(serializer.data),
+            'no_leidas': no_leidas,
+            'results': serializer.data,
+        })
+
+    @action(detail=False, methods=['post'])
+    def refrescar(self, request):
+        from .alertas import (
+            generar_high_rotation,
+            generar_low_stock,
+            generar_old_product,
+            generar_unusual_movement,
+        )
+
+        total_creadas = 0
+        total_resueltas = 0
+
+        c, r = generar_low_stock()
+        total_creadas += c
+        total_resueltas += r
+
+        c, r = generar_old_product()
+        total_creadas += c
+        total_resueltas += r
+
+        c, r = generar_unusual_movement()
+        total_creadas += c
+        total_resueltas += r
+
+        c, r = generar_high_rotation()
+        total_creadas += c
+        total_resueltas += r
+
+        no_leidas = AlertaInventario.objects.filter(resuelto=False).count()
+
+        return Response({
+            'creadas': total_creadas,
+            'resueltas': total_resueltas,
+            'no_leidas': no_leidas,
+        })
 
 
 @api_view(['POST'])

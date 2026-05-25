@@ -47,4 +47,6 @@ class MovimientoViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def get_oldest(self, request):
-        return Response(Movimiento.objects.order_by('id').first().creado.date())
+        if Movimiento.objects.exists():
+            return Response(Movimiento.objects.order_by('id').first().creado.date())
+        return Response(None)
