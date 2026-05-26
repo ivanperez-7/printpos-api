@@ -7,6 +7,7 @@ from rest_framework.response import Response
 
 from .queries import clientes_queryset
 from .serializers import *
+from productos.serializers import EquipoClienteSerializer
 
 __all__ = ['ClienteViewSet', 'UserViewSet', 'SucursalViewSet']
 
@@ -29,12 +30,12 @@ class ClienteViewSet(viewsets.ModelViewSet):
             else:
                 qs = cliente.equipos.all()
 
-            equipos = (
-                qs.filter(equipo__activo=True, equipo__marca__activo=True)
-                .values('id', 'equipo__id', 'equipo__nombre', 'contador_uso', 'alias')
-                .distinct()
-            )
-            return Response(equipos)
+            qs = qs.filter(
+                equipo__activo=True, equipo__marca__activo=True
+            ).select_related('equipo', 'cliente').distinct()
+            
+            serializer = EquipoClienteSerializer(qs, many=True)
+            return Response(serializer.data)
 
         if request.method == 'POST':
             # Crear equipos del cliente

@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from .models import Producto, Categoría, Marca, Proveedor, Equipo, Lote, Unidad
+from organizacion.models import EquipoCliente
 
 __all__ = [
     'CategoriaSerializer',
@@ -10,6 +11,7 @@ __all__ = [
     'ProductoSerializer',
     'LoteSerializer',
     'UnidadSerializer',
+    'EquipoClienteSerializer',
 ]
 
 
@@ -105,3 +107,14 @@ class UnidadSerializer(serializers.ModelSerializer):
         model = Unidad
         fields = '__all__'
         read_only_fields = ['id', 'actualizado']
+
+
+class EquipoClienteSerializer(serializers.ModelSerializer):
+    cliente_id = serializers.IntegerField(source='cliente.id', read_only=True)
+    cliente_nombre = serializers.CharField(source='cliente.nombre', read_only=True)
+    equipo_id = serializers.IntegerField(source='equipo.id', read_only=True)
+    equipo_nombre = serializers.CharField(source='equipo.nombre', read_only=True)
+
+    class Meta:
+        model = EquipoCliente
+        fields = ['id', 'cliente_id', 'cliente_nombre', 'equipo_id', 'equipo_nombre', 'alias', 'contador_uso']

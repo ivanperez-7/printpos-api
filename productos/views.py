@@ -1,13 +1,14 @@
-from django.db.models import Count, Q, F
+from django.db.models import Count, Sum, Q, F
 from django.utils import timezone
 from django_filters import rest_framework as filters
 from rest_framework import viewsets
-from rest_framework.decorators import api_view
+from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 
 from .models import Categoría, Marca, Proveedor, Equipo, Unidad
 from .serializers import *
-from movimiento.models import Movimiento
+from movimiento.models import Movimiento, MovimientoItem
+from organizacion.models import EquipoCliente
 from organizacion.queries import clientes_queryset
 from productos.queries import lotes_queryset, productos_queryset
 
@@ -63,6 +64,42 @@ class EquipoViewSet(viewsets.ModelViewSet):
         .select_related('marca')
     )
     serializer_class = EquipoSerializer
+
+    @action(detail=True, methods=['get'])
+    def clientes(self, request, pk=None):
+        equipo = self.get_object()
+        qs = EquipoCliente.objects.filter(
+            equipo=equipo,
+            cliente__activo=True,
+            cliente__sucursal=request.branch_id
+        ).select_related('cliente')
+
+        serializer = EquipoClienteSerializer(qs, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    def stats(self, request, pk=None):
+        equipo = self.get_object()
+        
+        instalaciones = EquipoCliente.objects.filter(
+            equipo=equipo,
+            cliente__activo=True,
+            cliente__sucursal=request.branch_id
+        )
+        total_instalaciones = instalaciones.count()
+        uso_total = instalaciones.aggregate(total=Sum('contador_uso'))['total'] or 0
+        total_movimientos = MovimientoItem.objects.filter(
+            equipo_cliente__equipo=equipo,
+            movimiento__aprobado=True,
+        ).count()
+
+        return Response({
+            'total_productos': equipo.producto_set.filter(status='activo').count(),
+            'total_instalaciones': total_instalaciones,
+            'uso_total': uso_total,
+            'uso_promedio': round(uso_total / total_instalaciones) if total_instalaciones else 0,
+            'total_movimientos': total_movimientos,
+        })
 
 
 class ProveedorViewSet(viewsets.ModelViewSet):
