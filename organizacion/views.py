@@ -1,10 +1,12 @@
 from django.contrib.auth.models import User
+from django.db.models import F
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
-from rest_framework import viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from .models import EquipoCliente
 from .queries import clientes_queryset
 from .serializers import *
 from productos.serializers import EquipoClienteSerializer
@@ -18,7 +20,7 @@ class ClienteViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return clientes_queryset(self.request.branch_id)
 
-    @action(detail=True, methods=['get', 'post'])
+    @action(detail=True, methods=['get', 'post', 'delete'])
     def equipos(self, request, pk=None):
         if request.method == 'GET':
             # Obtener datos de uso del cliente
@@ -47,7 +49,68 @@ class ClienteViewSet(viewsets.ModelViewSet):
             )
             return Response({'success': True}, status=201)
 
+        if request.method == 'DELETE':
+            cliente = self.get_object()
+            equipo_id = request.data.get('equipoId')
+
+            if not equipo_id:
+                return Response(
+                    {'detail': 'equipoId es requerido.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            try:
+                equipo_cliente = cliente.equipos.get(equipo_id=equipo_id)
+            except EquipoCliente.DoesNotExist:
+                return Response(
+                    {'detail': 'El cliente no tiene este equipo asignado.'},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            equipo_cliente.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
         return Response(status=405)
+
+    @action(detail=True, methods=['post'])
+    def incrementar_contador(self, request, pk=None):
+        cliente = self.get_object()
+        equipo_id = request.data.get('equipoId')
+        cantidad = request.data.get('cantidad')
+
+        if not equipo_id or not cantidad:
+            return Response(
+                {'detail': 'equipoId y cantidad son requeridos.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            cantidad = int(cantidad)
+        except (TypeError, ValueError):
+            return Response(
+                {'detail': 'cantidad debe ser un número entero.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if cantidad <= 0:
+            return Response(
+                {'detail': 'cantidad debe ser un número positivo.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            equipo_cliente = cliente.equipos.select_related('equipo').get(equipo_id=equipo_id)
+        except EquipoCliente.DoesNotExist:
+            return Response(
+                {'detail': 'El cliente no tiene este equipo asignado.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        equipo_cliente.contador_uso = F('contador_uso') + cantidad
+        equipo_cliente.save(update_fields=['contador_uso'])
+        equipo_cliente.refresh_from_db()
+
+        return Response({'contador_uso': equipo_cliente.contador_uso})
 
 
 class UserViewSet(viewsets.ModelViewSet):

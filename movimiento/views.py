@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.db.models import Prefetch
 from django_filters import rest_framework as filters
 from rest_framework import viewsets
@@ -47,6 +49,8 @@ class MovimientoViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def get_oldest(self, request):
-        if Movimiento.objects.exists():
-            return Response(Movimiento.objects.order_by('id').first().creado.date())
-        return Response(None)
+        qs = self.filter_queryset(Movimiento.objects.all()) # así para no filtrar por fecha
+        oldest = qs.order_by('id').first()
+        if oldest:
+            return Response(oldest.creado.date())
+        return Response(date.today())
