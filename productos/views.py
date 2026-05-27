@@ -31,6 +31,12 @@ class ProductoViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return productos_queryset()
+    
+    def update(self, request, *args, **kwargs):
+        try:
+            return super().update(request, *args, **kwargs)
+        except Exception as e:  
+            return Response({'detail': str(e)}, status=500)
 
 
 class LoteViewSet(viewsets.ModelViewSet):
