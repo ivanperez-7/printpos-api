@@ -12,7 +12,6 @@ CREDENTIALS_PATH = str(ROOT / 'credentials.json')
 
 
 def authenticate():
-    print("\n=============== Authenticating for Gmail: start ===============")
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
@@ -30,6 +29,4 @@ def authenticate():
         # Save the credentials for the next run
         with open(TOKEN_PATH, "w") as token:
             token.write(creds.to_json())
-
-    print("\n=============== Authenticating for Gmail: end ===============")
     return creds

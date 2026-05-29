@@ -114,7 +114,8 @@ class EquipoClienteSerializer(serializers.ModelSerializer):
     cliente_nombre = serializers.CharField(source='cliente.nombre', read_only=True)
     equipo_id = serializers.IntegerField(source='equipo.id', read_only=True)
     equipo_nombre = serializers.CharField(source='equipo.nombre', read_only=True)
+    marca_nombre = serializers.CharField(source='equipo.marca.nombre', read_only=True)
 
     class Meta:
         model = EquipoCliente
-        fields = ['id', 'cliente_id', 'cliente_nombre', 'equipo_id', 'equipo_nombre', 'alias', 'contador_uso']
+        fields = ['id', 'cliente_id', 'cliente_nombre', 'equipo_id', 'equipo_nombre', 'marca_nombre', 'alias', 'contador_uso']

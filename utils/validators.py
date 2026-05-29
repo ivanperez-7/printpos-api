@@ -1,5 +1,7 @@
 import io
 import re
+from calendar import monthrange
+from datetime import datetime
 
 import pdfplumber
 from rest_framework import serializers
@@ -16,12 +18,29 @@ class FacturaValidator:
         self.gmail = GmailApi()
 
     def _buscar_pdf_por_factura(self, numero_factura):
-        mensajes = self.gmail.find_emails(f"subject:{numero_factura}")
+        """ Busca en Gmail un correo con un PDF adjunto que contenga el número de prefactura especificado."""
+        hoy = datetime.now()
+        inicio_mes = hoy.replace(day=1).strftime("%Y/%m/%d")
+        ultimo_dia = monthrange(hoy.year, hoy.month)[1]
+        fin_mes = hoy.replace(day=ultimo_dia).strftime("%Y/%m/%d")
+
+        query = (
+            f"has:attachment filename:pdf from:konicaminolta "
+            f"subject:Prefactura after:{inicio_mes} before:{fin_mes}"
+        )
+        mensajes = self.gmail.find_emails(query)
+
         if not mensajes:
             return None
-        msg = self.gmail.get_message(mensajes[0]["id"])
-        pdfs = self.gmail.find_pdf_attachments(msg)
-        return pdfs[0] if pdfs else None
+        for msg_info in mensajes:
+            msg = self.gmail.get_message(msg_info["id"])
+            pdfs = self.gmail.find_pdf_attachments(msg)
+
+            for pdf_data in pdfs:
+                texto = self._extraer_texto_de_pdf(pdf_data)
+                if re.search(rf'ID-{numero_factura}', texto):
+                    return pdf_data
+        return None
 
     def _extraer_texto_de_pdf(self, pdf_data):
         texto_completo = []
@@ -35,7 +54,7 @@ class FacturaValidator:
         return '\n'.join(texto_completo)
 
     def _extraer_prefactura(self, text):
-        match = re.search(r'ID-(\d+)\|', text)
+        match = re.search(r'ID-(\d+)', text)
         return match.group(1) if match else None
 
     def _normalizar_texto(self, texto):
@@ -65,7 +84,7 @@ class FacturaValidator:
         pdf_data = self._buscar_pdf_por_factura(numero_factura)
 
         if not pdf_data:
-            raise ValidationError(f'No se encontró ningún correo con el número de factura {numero_factura}.')
+            raise ValidationError(f'No se encontró ningún correo con el número de prefactura {numero_factura}.')
 
         texto = self._extraer_texto_de_pdf(pdf_data)
 

@@ -34,11 +34,21 @@ class GmailApi:
         data = result["data"].replace("-", "+").replace("_", "/")
         return base64.b64decode(data)
 
+    def _is_pdf_attachment(self, part):
+        if part["mimeType"] == "application/pdf":
+            return True
+        if part["mimeType"] == "application/octet-stream" and (
+            part.get("filename", "").lower().endswith(".pdf")
+        ):
+            return True
+        return False
+
     def find_pdf_attachments(self, message):
         pdfs = []
         parts = message["payload"].get("parts", [])
+        
         for part in parts:
-            if part["mimeType"] == "application/pdf":
+            if self._is_pdf_attachment(part):
                 body = part.get("body", {})
                 if "attachmentId" in body:
                     data = self.get_attachment_data(
