@@ -6,9 +6,8 @@ class HasValidBranch(BasePermission):
         branch_id = request.headers.get('x-branch-id')
         request.branch_id = branch_id
 
-        return (
-            request.user
-            and request.user.is_authenticated
-            and branch_id
-            and request.user.profile.sucursales.filter(id=branch_id, activo=True).exists()
-        )
+        if not request.user or not request.user.is_authenticated or not branch_id:
+            return False
+        if not hasattr(request.user, 'profile'):
+            return False
+        return request.user.profile.sucursales.filter(id=branch_id, activo=True).exists()

@@ -17,7 +17,7 @@ from organizacion.serializers import UserSerializer
 def me(request):
     user = request.user
 
-    if not user.profile:
+    if not hasattr(user, 'profile'):
         return Response({'detail': 'Perfil de usuario no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
     return Response(UserSerializer(user).data)

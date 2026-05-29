@@ -99,7 +99,10 @@ class LoteSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'creado', 'actualizado']
     
     def get_cantidad_restante(self, instance: Lote):
-        return instance.cantidad_restante
+        try:
+            return instance.cantidad_restante
+        except AttributeError:
+            return instance.unidades.filter(status='disponible').count()
 
 
 class UnidadSerializer(serializers.ModelSerializer):
