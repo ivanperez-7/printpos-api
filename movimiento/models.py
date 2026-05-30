@@ -117,7 +117,6 @@ class MovimientoItem(models.Model):
 
     # Entrada
     def crear_lote(self):
-        # TODO: da error en SQL para un movimiento con items con el mismo producto
         codigo = f'{self.producto.codigo_interno}-{timezone.now().strftime("%Y%m%d%H%M%S")}'
 
         lote = Lote.objects.create(
@@ -128,6 +127,9 @@ class MovimientoItem(models.Model):
 
         unidades = [Unidad(lote=lote) for _ in range(self.cantidad)]
         Unidad.objects.bulk_create(unidades)
+
+        self.lote = lote
+        self.save(update_fields=['lote'])
         return lote
 
     # Salida

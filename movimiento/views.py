@@ -1,13 +1,17 @@
 from datetime import date
 
 from django.db.models import Prefetch
+from django.http import HttpResponse
 from django_filters import rest_framework as filters
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from productos.models import Lote
+
 from .models import Movimiento, MovimientoItem
 from .serializers import MovimientoSerializer
+from utils.pdf_barcodes import generate_lot_labels_pdf
 
 
 class MovimientoViewSet(viewsets.ModelViewSet):
@@ -54,3 +58,20 @@ class MovimientoViewSet(viewsets.ModelViewSet):
         if oldest:
             return Response(oldest.creado.date())
         return Response(date.today())
+
+    @action(detail=True, methods=['get'])
+    def etiquetas(self, request, pk=None):
+        movimiento = self.get_object()
+        
+        if movimiento.tipo != 'entrada':
+            return Response({'detail': 'Solo movimientos de entrada tienen etiquetas.'}, status=400)
+        if not movimiento.aprobado:
+            return Response({'detail': 'El movimiento debe estar aprobado.'}, status=400)
+
+        lotes = Lote.objects.filter(movimientoitem__movimiento=movimiento)
+        if not lotes.exists():
+            return Response({'detail': 'No se encontraron lotes para este movimiento.'}, status=404)
+
+        pdf_bytes = generate_lot_labels_pdf(lotes)
+        return HttpResponse(pdf_bytes, content_type='application/pdf',
+                            headers={'Content-Disposition': f'attachment; filename="etiquetas-movimiento-{pk}.pdf"'})
