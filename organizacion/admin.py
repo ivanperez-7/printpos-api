@@ -50,10 +50,6 @@ class SucursalAdmin(admin.ModelAdmin):
         }),
     )
 
-    # Mostrar almacenes relacionados directamente desde la sucursal
-    def get_queryset(self, request):
-        return super().get_queryset(request).prefetch_related('almacenes')
-
 
 @admin.register(PerfilUsuario)
 class PerfilUsuarioAdmin(admin.ModelAdmin):

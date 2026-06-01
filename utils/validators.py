@@ -4,13 +4,9 @@ from calendar import monthrange
 from datetime import datetime
 
 import pdfplumber
-from rest_framework import serializers
+from rest_framework.serializers import ValidationError
 
 from .gmail.client import GmailApi
-
-
-class ValidationError(serializers.ValidationError):
-    pass
 
 
 class FacturaValidator:

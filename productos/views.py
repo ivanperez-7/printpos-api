@@ -8,8 +8,7 @@ from rest_framework.response import Response
 from .models import Categoría, Marca, Proveedor, Equipo, Unidad
 from .serializers import *
 from movimiento.models import Movimiento, MovimientoItem
-from organizacion.models import EquipoCliente
-from organizacion.queries import clientes_queryset
+from organizacion.models import Cliente, EquipoCliente
 from productos.queries import lotes_queryset, productos_queryset
 from utils.mixins import ActivityLogMixin
 
@@ -138,7 +137,7 @@ def dashboard_view(request):
                 'lotes': lotes_queryset().filter(cantidad_restante__gt=0).count(),
                 'categorias': categorias.count(),
                 'proveedores': Proveedor.objects.filter(activo=True).count(),
-                'clientes': clientes_queryset(request.branch_id).count(),
+                'clientes': Cliente.objects.filter(activo=True, sucursal=request.branch_id).count(),
             },
             'categoriasChart': (
                 categorias.values('nombre').annotate(

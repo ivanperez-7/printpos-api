@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework import routers
 
-from .views import *
+from .views import ClienteViewSet, UserViewSet, SucursalViewSet
 
 
 router = routers.DefaultRouter()

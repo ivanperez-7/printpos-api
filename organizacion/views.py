@@ -1,7 +1,5 @@
 from django.contrib.auth.models import User
 from django.db.models import F
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -10,8 +8,8 @@ from system.models import RegistroActividad
 from utils.mixins import ActivityLogMixin
 
 from .models import EquipoCliente
-from .queries import clientes_queryset
-from .serializers import *
+from .serializers import ClienteSerializer, UserSerializer, SucursalSerializer
+from organizacion.models import Cliente, Sucursal
 from productos.serializers import EquipoClienteSerializer
 
 __all__ = ['ClienteViewSet', 'UserViewSet', 'SucursalViewSet']
@@ -21,7 +19,7 @@ class ClienteViewSet(ActivityLogMixin, viewsets.ModelViewSet):
     serializer_class = ClienteSerializer
 
     def get_queryset(self):
-        return clientes_queryset(self.request.branch_id)
+        return Cliente.objects.filter(activo=True, sucursal=self.request.branch_id)
 
     # Se sobreescribe perform_update para detectar soft-delete
     # (activo True → False) y registrarlo como 'delete' en lugar de 'update'.
@@ -165,6 +163,5 @@ class SucursalViewSet(viewsets.ModelViewSet):
     serializer_class = SucursalSerializer
     permission_classes = []
 
-    @method_decorator(cache_page(60 * 60 * 2))
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)

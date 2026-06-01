@@ -1,10 +1,10 @@
 from datetime import timedelta
 
-from django.db.models import Count, F, Q
+from django.db.models import Count, F
 from django.utils import timezone
 
 from movimiento.models import MovimientoItem
-from productos.models import Lote, Producto
+from productos.models import Producto
 from productos.queries import productos_queryset
 
 from .models import AlertaInventario
