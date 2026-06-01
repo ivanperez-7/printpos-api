@@ -11,6 +11,7 @@ from movimiento.models import Movimiento, MovimientoItem
 from organizacion.models import EquipoCliente
 from organizacion.queries import clientes_queryset
 from productos.queries import lotes_queryset, productos_queryset
+from utils.mixins import ActivityLogMixin
 
 __all__ = [
     'ProductoViewSet',
@@ -24,7 +25,7 @@ __all__ = [
 ]
 
 
-class ProductoViewSet(viewsets.ModelViewSet):
+class ProductoViewSet(ActivityLogMixin, viewsets.ModelViewSet):
     serializer_class = ProductoSerializer
     filter_backends = [filters.DjangoFilterBackend]
     filterset_fields = ['sku', 'categoria', 'equipos__marca', 'equipos']
@@ -38,8 +39,16 @@ class ProductoViewSet(viewsets.ModelViewSet):
         except Exception as e:  
             return Response({'detail': str(e)}, status=500)
 
+    # Se sobreescribe perform_update para detectar soft-delete
+    # (status activo → inactivo) y registrarlo como 'delete' en lugar de 'update'.
+    def perform_update(self, serializer):
+        old_status = serializer.instance.status
+        instance = serializer.save()
+        action = 'delete' if old_status == 'activo' and instance.status == 'inactivo' else 'update'
+        self.log(instance, action)
 
-class LoteViewSet(viewsets.ModelViewSet):
+
+class LoteViewSet(ActivityLogMixin, viewsets.ModelViewSet):
     serializer_class = LoteSerializer
     filter_backends = [filters.DjangoFilterBackend]
     filterset_fields = ['producto', 'codigo_lote']
@@ -53,17 +62,17 @@ class UnidadViewSet(viewsets.ModelViewSet):
     serializer_class = UnidadSerializer
 
 
-class CategoriaViewSet(viewsets.ModelViewSet):
+class CategoriaViewSet(ActivityLogMixin, viewsets.ModelViewSet):
     queryset = Categoría.objects.all()
     serializer_class = CategoriaSerializer
 
 
-class MarcaViewSet(viewsets.ModelViewSet):
+class MarcaViewSet(ActivityLogMixin, viewsets.ModelViewSet):
     queryset = Marca.objects.filter(activo=True)
     serializer_class = MarcaSerializer
 
 
-class EquipoViewSet(viewsets.ModelViewSet):
+class EquipoViewSet(ActivityLogMixin, viewsets.ModelViewSet):
     queryset = (
         Equipo.objects.filter(activo=True, marca__activo=True)
         .order_by('marca__nombre', 'nombre')
@@ -108,7 +117,7 @@ class EquipoViewSet(viewsets.ModelViewSet):
         })
 
 
-class ProveedorViewSet(viewsets.ModelViewSet):
+class ProveedorViewSet(ActivityLogMixin, viewsets.ModelViewSet):
     queryset = Proveedor.objects.filter(activo=True)
     serializer_class = ProveedorSerializer
 

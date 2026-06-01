@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from django.db import models
+from django.utils import timezone
 
 from productos.models import Producto
 
@@ -34,7 +35,13 @@ class RegistroActividad(models.Model):
     usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     accion = models.CharField(max_length=20, choices=ACCIONES)
     descripcion = models.TextField()
-    creado = models.DateTimeField(auto_now_add=True)
+    segmentos = models.JSONField(default=list, blank=True)
+    creado = models.DateTimeField(default=timezone.now)
+
+    def save(self, *args, **kwargs):
+        if self.segmentos:
+            self.descripcion = "".join(s["texto"] for s in self.segmentos)
+        super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = 'Registro de actividad'

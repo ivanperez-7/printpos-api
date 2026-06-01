@@ -7,8 +7,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from .models import AlertaInventario, ConfiguracionSistema
-from .serializers import AlertaInventarioSerializer, ConfiguracionSistemaSerializer
+from .models import AlertaInventario, ConfiguracionSistema, RegistroActividad
+from .serializers import (
+    AlertaInventarioSerializer,
+    ConfiguracionSistemaSerializer,
+    RegistroActividadSerializer,
+)
 from organizacion.serializers import UserSerializer
 
 
@@ -146,6 +150,25 @@ class AlertaViewSet(viewsets.ModelViewSet):
             'resueltas': total_resueltas,
             'no_leidas': no_leidas,
         })
+
+
+class RegistroActividadViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = RegistroActividad.objects.select_related('usuario').all()
+    serializer_class = RegistroActividadSerializer
+    filterset_fields = ['usuario', 'accion']
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if self.request.user.profile.rol != 'admin':
+            return qs.none()
+        
+        fecha_inicio = self.request.query_params.get('fechaInicio')
+        fecha_fin = self.request.query_params.get('fechaFin')
+        if fecha_inicio:
+            qs = qs.filter(creado__date__gte=fecha_inicio)
+        if fecha_fin:
+            qs = qs.filter(creado__date__lte=fecha_fin)
+        return qs
 
 
 @api_view(['POST'])

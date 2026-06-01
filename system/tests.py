@@ -197,3 +197,76 @@ class AlertaViewSetTest(APITestCase):
         mock_op.assert_called_once()
         mock_um.assert_called_once()
         mock_hr.assert_called_once()
+
+
+class RegistroActividadViewSetTest(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(username='admin', password='pass')
+        self.sucursal = Sucursal.objects.create(nombre='Suc Act')
+        PerfilUsuario.objects.create(usuario=self.admin, rol='admin')
+        self.admin.profile.sucursales.add(self.sucursal)
+        self.client.force_login(self.admin)
+        self.headers = {'HTTP_X_BRANCH_ID': self.sucursal.id}
+
+    def _crear_registros(self):
+        for i in range(3):
+            RegistroActividad.objects.create(
+                usuario=self.admin, accion='create',
+                descripcion=f'Test #{i}',
+            )
+
+    def test_list_requires_admin(self):
+        oper = User.objects.create_user(username='oper', password='pass')
+        PerfilUsuario.objects.create(usuario=oper, rol='operativo')
+        oper.profile.sucursales.add(self.sucursal)
+        self.client.force_login(oper)
+
+        self._crear_registros()
+        url = reverse('actividades-list')
+        response = self.client.get(url, **self.headers)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 0)
+
+    def test_list_returns_all_for_admin(self):
+        self._crear_registros()
+        url = reverse('actividades-list')
+        response = self.client.get(url, **self.headers)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 3)
+
+    def test_filter_by_accion(self):
+        RegistroActividad.objects.create(
+            usuario=self.admin, accion='create', descripcion='Creación',
+        )
+        RegistroActividad.objects.create(
+            usuario=self.admin, accion='update', descripcion='Modificación',
+        )
+        url = reverse('actividades-list')
+        response = self.client.get(f'{url}?accion=create', **self.headers)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+
+    def test_filter_by_fecha(self):
+        from django.utils import timezone
+        hace_un_mes = timezone.now() - timezone.timedelta(days=30)
+        RegistroActividad.objects.create(
+            usuario=self.admin, accion='create', descripcion='Viejo',
+            creado=hace_un_mes,
+        )
+        RegistroActividad.objects.create(
+            usuario=self.admin, accion='create', descripcion='Reciente',
+        )
+        ayer = (timezone.now() - timezone.timedelta(days=1)).date()
+        url = reverse('actividades-list')
+        response = self.client.get(f'{url}?fechaInicio={ayer.isoformat()}', **self.headers)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+
+    def test_serializer_includes_usuario_nombre(self):
+        RegistroActividad.objects.create(
+            usuario=self.admin, accion='create', descripcion='Test',
+        )
+        url = reverse('actividades-list')
+        response = self.client.get(url, **self.headers)
+        self.assertIn('usuario_nombre', response.data[0])
+        self.assertEqual(response.data[0]['usuario_nombre'], 'admin')

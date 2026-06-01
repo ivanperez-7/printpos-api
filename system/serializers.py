@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from shapeless_serializers.serializers import InlineShapelessModelSerializer
 
-from .models import AlertaInventario, ConfiguracionSistema
+from .models import AlertaInventario, ConfiguracionSistema, RegistroActividad
 from productos.models import Producto
 
 
@@ -21,3 +21,12 @@ class AlertaInventarioSerializer(serializers.ModelSerializer):
         model = AlertaInventario
         fields = ['id', 'producto', 'tipo_alerta', 'mensaje', 'creado', 'resuelto']
         read_only_fields = ['id', 'producto', 'tipo_alerta', 'mensaje', 'creado']
+
+
+class RegistroActividadSerializer(serializers.ModelSerializer):
+    usuario_nombre = serializers.CharField(source='usuario.username', read_only=True)
+
+    class Meta:
+        model = RegistroActividad
+        fields = ['id', 'usuario', 'usuario_nombre', 'accion', 'descripcion', 'segmentos', 'creado']
+        read_only_fields = fields

@@ -7,14 +7,15 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from productos.models import Lote
-
 from .models import Movimiento, MovimientoItem
 from .serializers import MovimientoSerializer
+from productos.models import Lote
+from system.models import RegistroActividad
+from utils.mixins import ActivityLogMixin
 from utils.pdf_barcodes import generate_lot_labels_pdf
 
 
-class MovimientoViewSet(viewsets.ModelViewSet):
+class MovimientoViewSet(ActivityLogMixin, viewsets.ModelViewSet):
     queryset = Movimiento.objects.all().select_related(
         'creado_por__profile', 'user_aprueba__profile',
         'detalle_entrada__recibido_por__profile',
@@ -42,11 +43,28 @@ class MovimientoViewSet(viewsets.ModelViewSet):
 
         return queryset
 
+    def get_log_description(self, instance, action):
+        # str() ya incluye "Movimiento 42 (entrada)", evitar duplicado
+        segmentos = [
+            {"texto": f"{self.verbs[action]} el "},
+            {"texto": str(instance), "tipo": "movimiento", "id": instance.pk},
+        ]
+        return f"{self.verbs[action]} el {instance}", segmentos
+
     @action(detail=True, methods=['post'])
     def aprobar(self, request, pk=None):
         try:
             movimiento = self.get_object()
             movimiento.approve(request.user)
+            segmentos = [
+                {"texto": "Aprobó el "},
+                {"texto": str(movimiento), "tipo": "movimiento", "id": movimiento.pk},
+            ]
+            RegistroActividad.objects.create(
+                usuario=request.user, accion='approve',
+                descripcion=f'Aprobó el {movimiento}',
+                segmentos=segmentos,
+            )
             return Response({'status': 'aprobado'})
         except Exception as e:
             return Response({'detail': str(e)}, status=500)

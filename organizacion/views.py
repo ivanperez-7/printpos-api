@@ -6,6 +6,9 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from system.models import RegistroActividad
+from utils.mixins import ActivityLogMixin
+
 from .models import EquipoCliente
 from .queries import clientes_queryset
 from .serializers import *
@@ -14,11 +17,19 @@ from productos.serializers import EquipoClienteSerializer
 __all__ = ['ClienteViewSet', 'UserViewSet', 'SucursalViewSet']
 
 
-class ClienteViewSet(viewsets.ModelViewSet):
+class ClienteViewSet(ActivityLogMixin, viewsets.ModelViewSet):
     serializer_class = ClienteSerializer
 
     def get_queryset(self):
         return clientes_queryset(self.request.branch_id)
+
+    # Se sobreescribe perform_update para detectar soft-delete
+    # (activo True → False) y registrarlo como 'delete' en lugar de 'update'.
+    def perform_update(self, serializer):
+        old_active = serializer.instance.activo
+        instance = serializer.save()
+        action = 'delete' if old_active and not instance.activo else 'update'
+        self.log(instance, action)
 
     @action(detail=True, methods=['get', 'post', 'delete'])
     def equipos(self, request, pk=None):
@@ -42,10 +53,22 @@ class ClienteViewSet(viewsets.ModelViewSet):
         if request.method == 'POST':
             # Crear equipos del cliente
             cliente = self.get_object()
+            equipo_id = int(request.data['equipoId'])
             cliente.equipos.create(
-                equipo_id=request.data['equipoId'],
+                equipo_id=equipo_id,
                 contador_uso=request.data['contadorUso'],
                 alias=request.data.get('alias', '')
+            )
+            segmentos = [
+                {"texto": "Asignó "},
+                {"texto": f"el equipo #{equipo_id}", "tipo": "equipo", "id": equipo_id},
+                {"texto": f" al {cliente} — "},
+                {"texto": str(cliente), "tipo": "cliente", "id": cliente.pk},
+            ]
+            RegistroActividad.objects.create(
+                usuario=request.user, accion='create',
+                descripcion=f'Asignó el equipo #{equipo_id} al {cliente}',
+                segmentos=segmentos,
             )
             return Response({'success': True}, status=201)
 
@@ -67,7 +90,19 @@ class ClienteViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
+            equipo_id = int(equipo_id)
             equipo_cliente.delete()
+            segmentos = [
+                {"texto": "Desasignó "},
+                {"texto": f"el equipo #{equipo_id}", "tipo": "equipo", "id": equipo_id},
+                {"texto": f" del {cliente} — "},
+                {"texto": str(cliente), "tipo": "cliente", "id": cliente.pk},
+            ]
+            RegistroActividad.objects.create(
+                usuario=request.user, accion='delete',
+                descripcion=f'Desasignó el equipo #{equipo_id} del {cliente}',
+                segmentos=segmentos,
+            )
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         return Response(status=405)
@@ -113,9 +148,16 @@ class ClienteViewSet(viewsets.ModelViewSet):
         return Response({'contador_uso': equipo_cliente.contador_uso})
 
 
-class UserViewSet(viewsets.ModelViewSet):
+class UserViewSet(ActivityLogMixin, viewsets.ModelViewSet):
     queryset = User.objects.filter(is_active=True).select_related('profile')
     serializer_class = UserSerializer
+
+    def get_log_description(self, instance, action):
+        segmentos = [
+            {"texto": f"{self.verbs[action]} el usuario "},
+            {"texto": str(instance), "tipo": "usuario", "id": instance.pk},
+        ]
+        return f"{self.verbs[action]} el usuario {instance}", segmentos
 
 
 class SucursalViewSet(viewsets.ModelViewSet):
