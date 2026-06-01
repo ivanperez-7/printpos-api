@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "skills": {
+    "django-expert": {
+      "source": "vintasoftware/django-ai-plugins",
+      "sourceType": "autoskills-registry",
+      "computedHash": "953f638e4d26826dffa99d604c987ddc196fd9914be987658a95e479159bbb9f"
+    },
+    "django-patterns": {
+      "source": "affaan-m/everything-claude-code",
+      "sourceType": "autoskills-registry",
+      "computedHash": "bb25ed3a0d4f7aa705a7f5fefa39808b754cee39da1d9ce7620171dd4e42a3c0"
+    },
+    "django-security": {
+      "source": "affaan-m/everything-claude-code",
+      "sourceType": "autoskills-registry",
+      "computedHash": "3961ec06ea45e4837e6dc47a18781b17aaa88b337fe4f84dae1501afc5297fd6"
+    }
+  }
+}
