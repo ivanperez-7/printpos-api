@@ -96,8 +96,8 @@ class FacturaValidator:
         errores = []
 
         for item in items:
-            producto_codigo = item['producto'].codigo_interno
-            cantidad = item['cantidad']
+            producto_codigo = item.producto.codigo_interno
+            cantidad = item.cantidad
 
             if not self._buscar_producto_en_texto(producto_codigo, cantidad, texto):
                 errores.append(

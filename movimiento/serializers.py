@@ -7,7 +7,6 @@ from .models import Movimiento, MovimientoItem, DetalleEntrada, DetalleSalida
 from organizacion.models import Cliente, EquipoCliente
 from organizacion.serializers import UserSerializer
 from productos.models import Lote, Producto
-from utils.validators import validar_factura_entrada
 
 
 class MovimientoItemSerializer(serializers.ModelSerializer):
@@ -95,10 +94,6 @@ class MovimientoSerializer(WritableNestedModelSerializer):
         if tipo == 'entrada':
             if not data.get('detalle_entrada'):
                 raise serializers.ValidationError('El detalle de entrada es requerido para movimientos de tipo entrada.')
-            
-            numero_factura = data['detalle_entrada'].get('numero_factura')
-            validar_factura_entrada(numero_factura, data['items'])
-            
             data.pop('detalle_salida', None)
 
         if tipo == 'salida':

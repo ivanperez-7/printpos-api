@@ -4,6 +4,7 @@ from django.utils import timezone
 
 from organizacion.models import Cliente, EquipoCliente
 from productos.models import Producto, Lote, Unidad
+from utils.validators import validar_factura_entrada
 
 
 class Movimiento(models.Model):
@@ -42,6 +43,9 @@ class Movimiento(models.Model):
             raise PermissionError('Solo administradores pueden aprobar movimientos.')
         if self.aprobado:
             raise ValueError('Movimiento ya aprobado.')
+
+        if hasattr(self, 'detalle_entrada'):
+            validar_factura_entrada(self.detalle_entrada.numero_factura, self.items.all())
 
         self.aprobado = True
         self.aprobado_fecha = timezone.now()

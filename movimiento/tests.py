@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
+from rest_framework.serializers import ValidationError
 from rest_framework.test import APITestCase, APIRequestFactory
 from rest_framework import status
 
@@ -78,8 +79,10 @@ class MovimientoModelTest(TestCase):
         with self.assertRaises(ValueError):
             self.movimiento.approve(self.admin)
 
+    @patch('movimiento.models.validar_factura_entrada')
     @patch('movimiento.models.MovimientoItem.crear_lote')
-    def test_approve_entrada_calls_crear_lote(self, mock_crear_lote):
+    def test_approve_entrada_calls_crear_lote(self, mock_crear_lote, mock_val):
+        mock_val.return_value = True
         DetalleEntrada.objects.create(
             movimiento=self.movimiento,
             numero_factura='F001',
@@ -363,7 +366,7 @@ class MovimientoSerializerTest(APITestCase):
         self.assertFalse(serializer.is_valid())
         self.assertIn('items', serializer.errors)
 
-    @patch('movimiento.serializers.validar_factura_entrada')
+    @patch('movimiento.models.validar_factura_entrada')
     def test_validate_entrada_requires_detalle_entrada(self, mock_val):
         mock_val.return_value = True
         data = {
@@ -406,9 +409,7 @@ class MovimientoSerializerTest(APITestCase):
         serializer = MovimientoSerializer(data=data, context={'request': self.request})
         self.assertFalse(serializer.is_valid())
 
-    @patch('movimiento.serializers.validar_factura_entrada')
-    def test_validate_entrada_success(self, mock_val):
-        mock_val.return_value = True
+    def test_validate_entrada_success(self):
         lote = Lote.objects.create(
             producto=self.producto, codigo_lote='L-SER2', cantidad_inicial=10
         )
@@ -461,9 +462,7 @@ class MovimientoViewSetTest(APITestCase):
                 'recibido_por_id': self.admin.pk,
             },
         }
-        with patch('movimiento.serializers.validar_factura_entrada') as mock_val:
-            mock_val.return_value = True
-            response = self._post(url, data)
+        response = self._post(url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_create_salida(self):
@@ -491,7 +490,9 @@ class MovimientoViewSetTest(APITestCase):
         response = self._post(url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-    def test_aprobar_endpoint_success(self):
+    @patch('movimiento.models.validar_factura_entrada')
+    def test_aprobar_endpoint_success(self, mock_val):
+        mock_val.return_value = True
         movimiento = Movimiento.objects.create(tipo='entrada', creado_por=self.admin)
         DetalleEntrada.objects.create(
             movimiento=movimiento, numero_factura='F-APR', recibido_por=self.admin
@@ -540,6 +541,24 @@ class MovimientoViewSetTest(APITestCase):
         response = self._post(url, {})
         self.assertEqual(response.status_code, 500)
         self.assertIn('ya aprobado', str(response.data['detail']))
+
+    @patch('movimiento.models.validar_factura_entrada')
+    def test_aprobar_endpoint_rejects_invalid_factura(self, mock_val):
+        mock_val.side_effect = ValidationError('Factura invalida')
+        movimiento = Movimiento.objects.create(tipo='entrada', creado_por=self.admin)
+        DetalleEntrada.objects.create(
+            movimiento=movimiento, numero_factura='F-BAD', recibido_por=self.admin
+        )
+        MovimientoItem.objects.create(
+            movimiento=movimiento, producto=self.producto, cantidad=5
+        )
+
+        url = reverse('movimientos-aprobar', kwargs={'pk': movimiento.pk})
+        response = self._post(url, {})
+        self.assertEqual(response.status_code, 500)
+        self.assertIn('Factura invalida', str(response.data['detail']))
+        movimiento.refresh_from_db()
+        self.assertFalse(movimiento.aprobado)
 
     def test_list_returns_movimientos(self):
         Movimiento.objects.create(tipo='entrada', creado_por=self.admin)
