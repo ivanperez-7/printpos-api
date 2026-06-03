@@ -7,6 +7,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
+from utils.permissions import HasAdminRole, HasValidBranch
+
 from .models import AlertaInventario, ConfiguracionSistema, RegistroActividad
 from .serializers import (
     AlertaInventarioSerializer,
@@ -87,6 +89,7 @@ def logout_view(request):
 class ConfiguracionSistemaViewSet(viewsets.ModelViewSet):
     queryset = ConfiguracionSistema.objects.all()
     serializer_class = ConfiguracionSistemaSerializer
+    permission_classes = [IsAuthenticated, HasValidBranch, HasAdminRole]
 
 
 class AlertaViewSet(viewsets.ModelViewSet):

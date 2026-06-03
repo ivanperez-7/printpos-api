@@ -11,3 +11,12 @@ class HasValidBranch(BasePermission):
         if not hasattr(request.user, 'profile'):
             return False
         return request.user.profile.sucursales.filter(id=branch_id, activo=True).exists()
+
+
+class HasAdminRole(BasePermission):
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated
+            and hasattr(request.user, 'profile')
+            and request.user.profile.rol == 'admin'
+        )

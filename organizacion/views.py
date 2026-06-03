@@ -21,6 +21,9 @@ class ClienteViewSet(ActivityLogMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         return Cliente.objects.filter(activo=True, sucursal=self.request.branch_id)
 
+    def perform_create(self, serializer):
+        serializer.save(sucursal_id=self.request.branch_id)
+
     # Se sobreescribe perform_update para detectar soft-delete
     # (activo True → False) y registrarlo como 'delete' en lugar de 'update'.
     def perform_update(self, serializer):
@@ -147,8 +150,12 @@ class ClienteViewSet(ActivityLogMixin, viewsets.ModelViewSet):
 
 
 class UserViewSet(ActivityLogMixin, viewsets.ModelViewSet):
-    queryset = User.objects.filter(is_active=True).select_related('profile')
     serializer_class = UserSerializer
+
+    def get_queryset(self):
+        return User.objects.filter(
+            is_active=True, profile__sucursales=self.request.branch_id
+        ).select_related('profile')
 
     def get_log_description(self, instance, action):
         segmentos = [
@@ -159,9 +166,8 @@ class UserViewSet(ActivityLogMixin, viewsets.ModelViewSet):
 
 
 class SucursalViewSet(viewsets.ModelViewSet):
+    """ Solo lectura de sucursales activas, sin logging ni permisos especiales."""
     queryset = Sucursal.objects.filter(activo=True)
     serializer_class = SucursalSerializer
     permission_classes = []
-
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
+    http_method_names = ['get']

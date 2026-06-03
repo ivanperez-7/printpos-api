@@ -117,7 +117,7 @@ class ClienteViewSetTest(APITestCase):
 
     def test_create(self):
         url = reverse('cliente-list')
-        data = {'nombre': 'Nuevo Cliente', 'sucursal': self.sucursal.id}
+        data = {'nombre': 'Nuevo Cliente'}
         response = self.client.post(url, data, format='json', **self.headers)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Cliente.objects.count(), 2)
@@ -130,7 +130,7 @@ class ClienteViewSetTest(APITestCase):
 
     def test_update(self):
         url = reverse('cliente-detail', kwargs={'pk': self.cliente.pk})
-        data = {'nombre': 'Pedro Actualizado', 'sucursal': self.sucursal.id}
+        data = {'nombre': 'Pedro Actualizado'}
         response = self.client.put(url, data, format='json', **self.headers)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.cliente.refresh_from_db()
@@ -286,4 +286,4 @@ class SucursalViewSetTest(APITestCase):
         url = reverse('sucursal-list')
         data = {'nombre': 'Suc C'}
         response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
