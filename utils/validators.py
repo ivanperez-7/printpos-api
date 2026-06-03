@@ -1,7 +1,6 @@
 import io
 import re
-from calendar import monthrange
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pdfplumber
 from rest_framework.serializers import ValidationError
@@ -16,13 +15,12 @@ class FacturaValidator:
     def _buscar_pdf_por_factura(self, numero_factura):
         """ Busca en Gmail un correo con un PDF adjunto que contenga el número de prefactura especificado."""
         hoy = datetime.now()
-        inicio_mes = hoy.replace(day=1).strftime("%Y/%m/%d")
-        ultimo_dia = monthrange(hoy.year, hoy.month)[1]
-        fin_mes = hoy.replace(day=ultimo_dia).strftime("%Y/%m/%d")
+        inicio_busqueda = (hoy - timedelta(days=90)).strftime("%Y/%m/%d")
+        fin_busqueda = hoy.strftime("%Y/%m/%d")
 
         query = (
             f"has:attachment filename:pdf from:konicaminolta "
-            f"subject:Prefactura after:{inicio_mes} before:{fin_mes}"
+            f"subject:Prefactura after:{inicio_busqueda} before:{fin_busqueda}"
         )
         mensajes = self.gmail.find_emails(query)
 

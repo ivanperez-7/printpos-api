@@ -1,3 +1,5 @@
+import uuid
+
 from django.contrib.auth.models import User
 from django.db import models, transaction
 from django.utils import timezone
@@ -124,7 +126,7 @@ class MovimientoItem(models.Model):
 
     # Entrada
     def crear_lote(self):
-        codigo = f'{self.producto.codigo_interno}-{timezone.now().strftime("%Y%m%d%H%M%S")}'
+        codigo = f'{timezone.now().strftime("%Y%m%d%H%M%S")}-{uuid.uuid4().hex[:8]}'
 
         lote = Lote.objects.create(
             producto=self.producto,
@@ -170,7 +172,7 @@ class MovimientoItem(models.Model):
         if not self.lote:
             raise ValueError('Lote debe estar especificado para asignar unidades.')
 
-        disponibles = self.lote.unidades.filter(status='disponible').order_by('id')[:self.cantidad]
+        disponibles = self.lote.unidades.filter(status='disponible').select_for_update().order_by('id')[:self.cantidad]
 
         if disponibles.count() < self.cantidad:
             raise ValueError(

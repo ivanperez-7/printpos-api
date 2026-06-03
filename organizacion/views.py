@@ -47,7 +47,7 @@ class ClienteViewSet(ActivityLogMixin, viewsets.ModelViewSet):
 
             qs = qs.filter(
                 equipo__activo=True, equipo__marca__activo=True
-            ).select_related('equipo', 'cliente').distinct()
+            ).select_related('equipo__marca', 'equipo', 'cliente').distinct()
             
             serializer = EquipoClienteSerializer(qs, many=True)
             return Response(serializer.data)
