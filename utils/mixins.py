@@ -37,6 +37,7 @@ class ActivityLogMixin:
             accion=action,
             descripcion=descripcion,
             segmentos=segmentos,
+            sucursal_id=self.request.branch_id,
         )
 
     def perform_create(self, serializer):

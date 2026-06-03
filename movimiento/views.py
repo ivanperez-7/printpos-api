@@ -65,6 +65,7 @@ class MovimientoViewSet(ActivityLogMixin, viewsets.ModelViewSet):
                 usuario=request.user, accion='approve',
                 descripcion=f'Aprobó el {movimiento}',
                 segmentos=segmentos,
+                sucursal_id=request.branch_id,
             )
             return Response({'status': 'aprobado'})
         except PermissionError as e:

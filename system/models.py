@@ -36,6 +36,10 @@ class RegistroActividad(models.Model):
     accion = models.CharField(max_length=20, choices=ACCIONES)
     descripcion = models.TextField()
     segmentos = models.JSONField(default=list, blank=True)
+    sucursal = models.ForeignKey(
+        'organizacion.Sucursal', on_delete=models.PROTECT,
+        related_name='actividades',
+    )
     creado = models.DateTimeField(default=timezone.now)
 
     def save(self, *args, **kwargs):

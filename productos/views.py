@@ -30,7 +30,7 @@ class ProductoViewSet(ActivityLogMixin, viewsets.ModelViewSet):
     filterset_fields = ['sku', 'categoria', 'equipos__marca', 'equipos']
 
     def get_queryset(self):
-        return productos_queryset()
+        return productos_queryset(self.request.branch_id)
     
     def update(self, request, *args, **kwargs):
         try:
@@ -109,6 +109,7 @@ class EquipoViewSet(ActivityLogMixin, viewsets.ModelViewSet):
         total_movimientos = MovimientoItem.objects.filter(
             equipo_cliente__equipo=equipo,
             movimiento__aprobado=True,
+            movimiento__sucursal=request.branch_id
         ).count()
 
         return Response({

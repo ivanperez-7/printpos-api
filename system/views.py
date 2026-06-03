@@ -162,7 +162,7 @@ class AlertaViewSet(viewsets.ModelViewSet):
 
 
 class RegistroActividadViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = RegistroActividad.objects.select_related('usuario').all()
+    queryset = RegistroActividad.objects.select_related('usuario', 'sucursal').all()
     serializer_class = RegistroActividadSerializer
     filterset_fields = ['usuario', 'accion']
 
@@ -170,9 +170,11 @@ class RegistroActividadViewSet(viewsets.ReadOnlyModelViewSet):
         qs = super().get_queryset()
         if self.request.user.profile.rol != 'admin':
             return qs.none()
-        
+
+        qs = qs.filter(sucursal=self.request.branch_id)
         fecha_inicio = self.request.query_params.get('fechaInicio')
         fecha_fin = self.request.query_params.get('fechaFin')
+        
         if fecha_inicio:
             qs = qs.filter(creado__date__gte=fecha_inicio)
         if fecha_fin:

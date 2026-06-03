@@ -22,7 +22,8 @@ class ClienteViewSet(ActivityLogMixin, viewsets.ModelViewSet):
         return Cliente.objects.filter(activo=True, sucursal=self.request.branch_id)
 
     def perform_create(self, serializer):
-        serializer.save(sucursal_id=self.request.branch_id)
+        instance = serializer.save(sucursal_id=self.request.branch_id)
+        self.log(instance, 'create')
 
     # Se sobreescribe perform_update para detectar soft-delete
     # (activo True → False) y registrarlo como 'delete' en lugar de 'update'.
@@ -70,6 +71,7 @@ class ClienteViewSet(ActivityLogMixin, viewsets.ModelViewSet):
                 usuario=request.user, accion='create',
                 descripcion=f'Asignó el equipo #{equipo_id} al {cliente}',
                 segmentos=segmentos,
+                sucursal_id=request.branch_id,
             )
             return Response({'success': True}, status=201)
 
@@ -103,6 +105,7 @@ class ClienteViewSet(ActivityLogMixin, viewsets.ModelViewSet):
                 usuario=request.user, accion='delete',
                 descripcion=f'Desasignó el equipo #{equipo_id} del {cliente}',
                 segmentos=segmentos,
+                sucursal_id=request.branch_id,
             )
             return Response(status=status.HTTP_204_NO_CONTENT)
 

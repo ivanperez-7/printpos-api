@@ -25,8 +25,9 @@ class AlertaInventarioSerializer(serializers.ModelSerializer):
 
 class RegistroActividadSerializer(serializers.ModelSerializer):
     usuario_nombre = serializers.CharField(source='usuario.username', read_only=True)
+    sucursal_nombre = serializers.CharField(source='sucursal.nombre', read_only=True)
 
     class Meta:
         model = RegistroActividad
-        fields = ['id', 'usuario', 'usuario_nombre', 'accion', 'descripcion', 'segmentos', 'creado']
+        fields = ['id', 'usuario', 'usuario_nombre', 'accion', 'descripcion', 'segmentos', 'sucursal', 'sucursal_nombre', 'creado']
         read_only_fields = fields

@@ -24,8 +24,10 @@ class ConfiguracionSistemaModelTest(TestCase):
 class RegistroActividadModelTest(TestCase):
     def test_str(self):
         user = User.objects.create_user(username='logger', password='pass')
+        sucursal = Sucursal.objects.create(nombre='Suc Test')
         reg = RegistroActividad.objects.create(
-            usuario=user, accion='login', descripcion='Inicio de sesión'
+            usuario=user, accion='login', descripcion='Inicio de sesión',
+            sucursal=sucursal,
         )
         self.assertIn('logger', str(reg))
 
@@ -213,6 +215,7 @@ class RegistroActividadViewSetTest(APITestCase):
             RegistroActividad.objects.create(
                 usuario=self.admin, accion='create',
                 descripcion=f'Test #{i}',
+                sucursal=self.sucursal,
             )
 
     def test_list_requires_admin(self):
@@ -237,9 +240,11 @@ class RegistroActividadViewSetTest(APITestCase):
     def test_filter_by_accion(self):
         RegistroActividad.objects.create(
             usuario=self.admin, accion='create', descripcion='Creación',
+            sucursal=self.sucursal,
         )
         RegistroActividad.objects.create(
             usuario=self.admin, accion='update', descripcion='Modificación',
+            sucursal=self.sucursal,
         )
         url = reverse('actividades-list')
         response = self.client.get(f'{url}?accion=create', **self.headers)
@@ -251,10 +256,11 @@ class RegistroActividadViewSetTest(APITestCase):
         hace_un_mes = timezone.now() - timezone.timedelta(days=30)
         RegistroActividad.objects.create(
             usuario=self.admin, accion='create', descripcion='Viejo',
-            creado=hace_un_mes,
+            creado=hace_un_mes, sucursal=self.sucursal,
         )
         RegistroActividad.objects.create(
             usuario=self.admin, accion='create', descripcion='Reciente',
+            sucursal=self.sucursal,
         )
         ayer = (timezone.now() - timezone.timedelta(days=1)).date()
         url = reverse('actividades-list')
@@ -265,6 +271,7 @@ class RegistroActividadViewSetTest(APITestCase):
     def test_serializer_includes_usuario_nombre(self):
         RegistroActividad.objects.create(
             usuario=self.admin, accion='create', descripcion='Test',
+            sucursal=self.sucursal,
         )
         url = reverse('actividades-list')
         response = self.client.get(url, **self.headers)

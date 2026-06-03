@@ -19,10 +19,10 @@ class ConfiguracionSistemaAdmin(admin.ModelAdmin):
 @admin.register(RegistroActividad)
 class RegistroActividadAdmin(admin.ModelAdmin):
     """Admin para el historial de acciones del sistema."""
-    list_display = ('usuario', 'descripcion_resumida', 'creado')
-    list_filter = ('accion', 'usuario')
+    list_display = ('usuario', 'sucursal', 'descripcion_resumida', 'creado')
+    list_filter = ('accion', 'sucursal', 'usuario')
     search_fields = ('usuario__username', 'descripcion')
-    readonly_fields = ('usuario', 'accion', 'descripcion', 'creado')
+    readonly_fields = ('usuario', 'accion', 'descripcion', 'creado', 'sucursal')
     list_per_page = 30
     date_hierarchy = 'creado'
     ordering = ('-creado',)

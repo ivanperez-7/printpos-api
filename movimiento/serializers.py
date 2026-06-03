@@ -45,10 +45,14 @@ class MovimientoItemSerializer(serializers.ModelSerializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         request = self.context.get('request')
+
         if request and hasattr(request, 'branch_id'):
             self.fields['equipo_cliente_id'].queryset = EquipoCliente.objects.filter(
                 cliente__sucursal=request.branch_id
-            )
+            ).select_related('cliente', 'equipo')
+            self.fields['lote_id'].queryset = Lote.objects.filter(
+                sucursal=request.branch_id
+            ).select_related('producto')
 
 
 class DetalleEntradaSerializer(serializers.ModelSerializer):

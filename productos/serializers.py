@@ -82,7 +82,10 @@ class ProductoSerializer(serializers.ModelSerializer):
     def get_cantidad_disponible(self, instance: Producto):
         if hasattr(instance, 'cantidad_disponible'):
             return instance.cantidad_disponible
-        return Unidad.objects.filter(lote__producto=instance, status='disponible').count()
+        
+        return Unidad.objects.filter(
+            lote__producto=instance, status='disponible', lote__sucursal=self.context['request'].branch_id
+        ).count()
 
 
 class LoteSerializer(serializers.ModelSerializer):
@@ -99,10 +102,12 @@ class LoteSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'creado', 'actualizado']
     
     def get_cantidad_restante(self, instance: Lote):
-        try:
+        if hasattr(instance, 'cantidad_restante'):
             return instance.cantidad_restante
-        except AttributeError:
-            return instance.unidades.filter(status='disponible').count()
+        
+        return instance.unidades.filter(
+            status='disponible', lote__sucursal=self.context['request'].branch_id
+        ).count()
 
 
 class UnidadSerializer(serializers.ModelSerializer):
