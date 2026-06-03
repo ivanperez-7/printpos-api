@@ -42,6 +42,14 @@ class MovimientoItemSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['id', 'movimiento']
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request and hasattr(request, 'branch_id'):
+            self.fields['equipo_cliente_id'].queryset = EquipoCliente.objects.filter(
+                cliente__sucursal=request.branch_id
+            )
+
 
 class DetalleEntradaSerializer(serializers.ModelSerializer):
     recibido_por = UserSerializer(read_only=True)
@@ -55,6 +63,14 @@ class DetalleEntradaSerializer(serializers.ModelSerializer):
         model = DetalleEntrada
         fields = '__all__'
         read_only_fields = ['id', 'movimiento']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request and hasattr(request, 'branch_id'):
+            self.fields['recibido_por_id'].queryset = User.objects.filter(
+                profile__sucursales=request.branch_id
+            )
 
 
 class DetalleSalidaSerializer(serializers.ModelSerializer):
@@ -70,6 +86,14 @@ class DetalleSalidaSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['id', 'movimiento']
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request and hasattr(request, 'branch_id'):
+            self.fields['cliente_id'].queryset = Cliente.objects.filter(
+                sucursal=request.branch_id
+            )
+
 
 class MovimientoSerializer(WritableNestedModelSerializer):
     creado_por = UserSerializer(read_only=True)
@@ -81,7 +105,7 @@ class MovimientoSerializer(WritableNestedModelSerializer):
     class Meta:
         model = Movimiento
         fields = '__all__'
-        read_only_fields = ['id', 'creado', 'creado_por']
+        read_only_fields = ['id', 'creado', 'creado_por', 'sucursal']
 
     def validate_items(self, value):
         if not value:
@@ -110,4 +134,5 @@ class MovimientoSerializer(WritableNestedModelSerializer):
                     )
 
         data['creado_por'] = self.context['request'].user
+        data['sucursal_id'] = self.context['request'].branch_id
         return data

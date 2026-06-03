@@ -24,3 +24,10 @@ admin.site.site_title = 'PrintPOS DB'
 
 if settings.DEBUG:
     urlpatterns += debug_toolbar_urls()
+
+""" 
+- Gmail using run_local_server
+- N+1 on EquipoCliente serialization
+- N+1 in movement serializer validation
+- No rate limiting on any endpoint
+"""

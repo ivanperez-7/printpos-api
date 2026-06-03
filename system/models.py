@@ -61,6 +61,7 @@ class AlertaInventario(models.Model):
         ('high_rotation', 'Alta rotación'),
     ]
 
+    sucursal = models.ForeignKey('organizacion.Sucursal', on_delete=models.PROTECT, related_name='alertas')
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name='alertas')
     tipo_alerta = models.CharField(max_length=30, choices=TIPOS_ALERTA)
     mensaje = models.TextField()

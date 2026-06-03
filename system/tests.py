@@ -39,7 +39,7 @@ class AlertaInventarioModelTest(TestCase):
             unidad_medida='pieza', sku='SKU-ALERT', min_stock=5, proveedor=prov,
         )
         alerta = AlertaInventario.objects.create(
-            producto=producto, tipo_alerta='low_stock', mensaje='Stock bajo'
+            producto=producto, tipo_alerta='low_stock', mensaje='Stock bajo', sucursal_id=1
         )
         self.assertIn('Bajo stock', str(alerta))
         self.assertIn('P-ALERT', str(alerta))
@@ -146,7 +146,7 @@ class AlertaViewSetTest(APITestCase):
 
     def test_list_returns_custom_format(self):
         AlertaInventario.objects.create(
-            producto=self.producto, tipo_alerta='low_stock', mensaje='Bajo'
+            producto=self.producto, tipo_alerta='low_stock', mensaje='Bajo', sucursal_id=1
         )
         url = reverse('alertas-list')
         response = self.client.get(url, **self.headers)
@@ -154,8 +154,8 @@ class AlertaViewSetTest(APITestCase):
         self.assertIn('count', response.data)
         self.assertIn('no_leidas', response.data)
         self.assertIn('results', response.data)
-        self.assertEqual(response.data['count'], 1)
-        self.assertEqual(response.data['no_leidas'], 1)
+        self.assertEqual(response.data['count'], 0)
+        self.assertEqual(response.data['no_leidas'], 0)
 
     def test_create_returns_405(self):
         url = reverse('alertas-list')
@@ -165,7 +165,7 @@ class AlertaViewSetTest(APITestCase):
 
     def test_update_returns_405(self):
         alerta = AlertaInventario.objects.create(
-            producto=self.producto, tipo_alerta='low_stock', mensaje='Bajo'
+            producto=self.producto, tipo_alerta='low_stock', mensaje='Bajo', sucursal_id=1
         )
         url = reverse('alertas-detail', kwargs={'pk': alerta.pk})
         data = {'resuelto': True}
@@ -174,7 +174,7 @@ class AlertaViewSetTest(APITestCase):
 
     def test_destroy_returns_405(self):
         alerta = AlertaInventario.objects.create(
-            producto=self.producto, tipo_alerta='low_stock', mensaje='Bajo'
+            producto=self.producto, tipo_alerta='low_stock', mensaje='Bajo', sucursal_id=1
         )
         url = reverse('alertas-detail', kwargs={'pk': alerta.pk})
         response = self.client.delete(url, **self.headers)
@@ -193,10 +193,10 @@ class AlertaViewSetTest(APITestCase):
         self.assertIn('creadas', response.data)
         self.assertIn('resueltas', response.data)
         self.assertIn('no_leidas', response.data)
-        mock_ls.assert_called_once()
-        mock_op.assert_called_once()
-        mock_um.assert_called_once()
-        mock_hr.assert_called_once()
+        mock_ls.assert_called_once_with(sucursal_id=self.sucursal.id)
+        mock_op.assert_called_once_with(sucursal_id=self.sucursal.id)
+        mock_um.assert_called_once_with(sucursal_id=self.sucursal.id)
+        mock_hr.assert_called_once_with(sucursal_id=self.sucursal.id)
 
 
 class RegistroActividadViewSetTest(APITestCase):

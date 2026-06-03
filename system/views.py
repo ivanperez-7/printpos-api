@@ -93,10 +93,14 @@ class ConfiguracionSistemaViewSet(viewsets.ModelViewSet):
 
 
 class AlertaViewSet(viewsets.ModelViewSet):
-    queryset = AlertaInventario.objects.select_related('producto').all()
     serializer_class = AlertaInventarioSerializer
     filterset_fields = ['tipo_alerta', 'resuelto']
     http_method_names = ['get', 'patch', 'post']
+
+    def get_queryset(self):
+        return AlertaInventario.objects.select_related('producto').filter(
+            sucursal=self.request.branch_id
+        )
 
     def create(self, request, *args, **kwargs):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
@@ -110,7 +114,7 @@ class AlertaViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
         serializer = self.get_serializer(queryset, many=True)
-        no_leidas = AlertaInventario.objects.filter(resuelto=False).count()
+        no_leidas = AlertaInventario.objects.filter(resuelto=False, sucursal=request.branch_id).count()
         
         return Response({
             'count': len(serializer.data),
@@ -127,26 +131,28 @@ class AlertaViewSet(viewsets.ModelViewSet):
             generar_unusual_movement,
         )
 
+        branch_id = request.branch_id
+
         total_creadas = 0
         total_resueltas = 0
 
-        c, r = generar_low_stock()
+        c, r = generar_low_stock(sucursal_id=branch_id)
         total_creadas += c
         total_resueltas += r
 
-        c, r = generar_old_product()
+        c, r = generar_old_product(sucursal_id=branch_id)
         total_creadas += c
         total_resueltas += r
 
-        c, r = generar_unusual_movement()
+        c, r = generar_unusual_movement(sucursal_id=branch_id)
         total_creadas += c
         total_resueltas += r
 
-        c, r = generar_high_rotation()
+        c, r = generar_high_rotation(sucursal_id=branch_id)
         total_creadas += c
         total_resueltas += r
 
-        no_leidas = AlertaInventario.objects.filter(resuelto=False).count()
+        no_leidas = AlertaInventario.objects.filter(resuelto=False, sucursal=branch_id).count()
 
         return Response({
             'creadas': total_creadas,

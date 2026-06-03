@@ -69,7 +69,8 @@ class LoteModelTest(APITestCase):
         lote = Lote.objects.create(
             producto=producto,
             codigo_lote="L001",
-            cantidad_inicial=100
+            cantidad_inicial=100,
+            sucursal_id=1,
         )
         self.assertEqual(str(lote), "L001")
 
@@ -90,7 +91,8 @@ class UnidadModelTest(APITestCase):
         lote = Lote.objects.create(
             producto=producto,
             codigo_lote="L002",
-            cantidad_inicial=50
+            cantidad_inicial=50,
+            sucursal_id=1,
         )
         unidad = Unidad.objects.create(lote=lote)
         self.assertIn("Unidad de P003, lote L002:", str(unidad))
@@ -161,7 +163,8 @@ class LoteSerializerTest(APITestCase):
         lote = Lote.objects.create(
             producto=producto,
             codigo_lote="L003",
-            cantidad_inicial=200
+            cantidad_inicial=200,
+            sucursal_id=1,
         )
         serializer = LoteSerializer(lote)
         self.assertEqual(serializer.data['codigo_lote'], "L003")
@@ -183,7 +186,8 @@ class UnidadSerializerTest(APITestCase):
         lote = Lote.objects.create(
             producto=producto,
             codigo_lote="L004",
-            cantidad_inicial=30
+            cantidad_inicial=30,
+            sucursal_id=1,
         )
         unidad = Unidad.objects.create(lote=lote)
         serializer = UnidadSerializer(unidad)
@@ -230,12 +234,13 @@ class LoteViewSetTest(APITestCase):
             min_stock=30,
             proveedor=self.proveedor
         )
+        self.sucursal = Sucursal.objects.create(nombre="Sucursal Test 2")
         self.lote = Lote.objects.create(
             producto=self.producto,
             codigo_lote="L005",
-            cantidad_inicial=60
+            cantidad_inicial=60,
+            sucursal=self.sucursal,
         )
-        self.sucursal = Sucursal.objects.create(nombre="Sucursal Test 2")
 
     def test_list(self):
         user = User.objects.create_user(username='testuser', password='testpass')
@@ -266,7 +271,8 @@ class ProductoModelSaveTest(APITestCase):
             proveedor=proveedor,
         )
         user = User.objects.create_user(username='saveuser', password='pass')
-        movimiento = Movimiento.objects.create(tipo='entrada', creado_por=user)
+        sucursal = Sucursal.objects.create(nombre='Suc Save')
+        movimiento = Movimiento.objects.create(tipo='entrada', creado_por=user, sucursal=sucursal)
         MovimientoItem.objects.create(movimiento=movimiento, producto=producto, cantidad=1)
 
         with self.assertRaises(ValueError):
@@ -375,7 +381,7 @@ class UnidadViewSetTest(APITestCase):
             codigo_interno='P-UNI', descripcion='Test', categoria=cat,
             unidad_medida='pieza', sku='SKU-UNI', min_stock=1, proveedor=prov,
         )
-        self.lote = Lote.objects.create(producto=self.producto, codigo_lote='L-UNI', cantidad_inicial=5)
+        self.lote = Lote.objects.create(producto=self.producto, codigo_lote='L-UNI', cantidad_inicial=5, sucursal=self.sucursal)
         self.unidad = Unidad.objects.create(lote=self.lote)
 
     def test_list(self):

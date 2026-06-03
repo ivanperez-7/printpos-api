@@ -48,9 +48,10 @@ def _create_producto(codigo='P001', vida_util=5):
 class MovimientoModelTest(TestCase):
     def setUp(self):
         self.admin = _create_admin()
+        self.admin.profile.sucursales.add(1)
         self.producto = _create_producto()
         self.movimiento = Movimiento.objects.create(
-            tipo='entrada', creado_por=self.admin
+            tipo='entrada', creado_por=self.admin, sucursal_id=1
         )
 
     def test_str(self):
@@ -97,7 +98,7 @@ class MovimientoModelTest(TestCase):
     def test_approve_salida_calls_asignar_unidades(self):
         producto = _create_producto(codigo='P002')
         lote = Lote.objects.create(
-            producto=producto, codigo_lote='L-APR', cantidad_inicial=10
+            producto=producto, codigo_lote='L-APR', cantidad_inicial=10, sucursal_id=1
         )
         for _ in range(10):
             Unidad.objects.create(lote=lote)
@@ -108,7 +109,7 @@ class MovimientoModelTest(TestCase):
         equipo_cliente = EquipoCliente.objects.create(
             equipo=equipo, cliente=cliente, alias='EQ1', contador_uso=100
         )
-        movimiento = Movimiento.objects.create(tipo='salida', creado_por=self.admin)
+        movimiento = Movimiento.objects.create(tipo='salida', creado_por=self.admin, sucursal_id=1)
         DetalleSalida.objects.create(movimiento=movimiento, cliente=cliente)
         item = MovimientoItem.objects.create(
             movimiento=movimiento,
@@ -128,7 +129,7 @@ class MovimientoModelTest(TestCase):
     def test_approve_salida_rejects_insufficient_units(self):
         producto = _create_producto(codigo='P003')
         lote = Lote.objects.create(
-            producto=producto, codigo_lote='L-SHORT', cantidad_inicial=2
+            producto=producto, codigo_lote='L-SHORT', cantidad_inicial=2, sucursal_id=1
         )
         for _ in range(2):
             Unidad.objects.create(lote=lote)
@@ -139,7 +140,7 @@ class MovimientoModelTest(TestCase):
         equipo_cliente = EquipoCliente.objects.create(
             equipo=equipo, cliente=cliente, alias='EQ2', contador_uso=50
         )
-        movimiento = Movimiento.objects.create(tipo='salida', creado_por=self.admin)
+        movimiento = Movimiento.objects.create(tipo='salida', creado_por=self.admin, sucursal_id=1)
         DetalleSalida.objects.create(movimiento=movimiento, cliente=cliente)
         MovimientoItem.objects.create(
             movimiento=movimiento,
@@ -157,7 +158,7 @@ class MovimientoItemModelTest(TestCase):
     def setUp(self):
         self.admin = _create_admin()
         self.producto = _create_producto(vida_util=3)
-        self.movimiento = Movimiento.objects.create(tipo='entrada', creado_por=self.admin)
+        self.movimiento = Movimiento.objects.create(tipo='entrada', creado_por=self.admin, sucursal_id=1)
 
     def test_str(self):
         item = MovimientoItem.objects.create(
@@ -176,7 +177,7 @@ class MovimientoItemModelTest(TestCase):
     def test_save_validates_lote_producto_match(self):
         otro_producto = _create_producto(codigo='P-OTHER')
         lote = Lote.objects.create(
-            producto=self.producto, codigo_lote='L-MATCH', cantidad_inicial=5
+            producto=self.producto, codigo_lote='L-MATCH', cantidad_inicial=5, sucursal_id=1
         )
         item = MovimientoItem(
             movimiento=self.movimiento, producto=otro_producto, cantidad=1, lote=lote
@@ -186,12 +187,12 @@ class MovimientoItemModelTest(TestCase):
 
     def test_asignar_unidades_marks_as_retirada(self):
         lote = Lote.objects.create(
-            producto=self.producto, codigo_lote='L-ASIGN', cantidad_inicial=10
+            producto=self.producto, codigo_lote='L-ASIGN', cantidad_inicial=10, sucursal_id=1
         )
         for _ in range(10):
             Unidad.objects.create(lote=lote)
 
-        movimiento = Movimiento.objects.create(tipo='salida', creado_por=self.admin)
+        movimiento = Movimiento.objects.create(tipo='salida', creado_por=self.admin, sucursal_id=1)
         item = MovimientoItem.objects.create(
             movimiento=movimiento, producto=self.producto, cantidad=4, lote=lote
         )
@@ -204,11 +205,11 @@ class MovimientoItemModelTest(TestCase):
 
     def test_asignar_unidades_raises_if_not_enough(self):
         lote = Lote.objects.create(
-            producto=self.producto, codigo_lote='L-LOW', cantidad_inicial=1
+            producto=self.producto, codigo_lote='L-LOW', cantidad_inicial=1, sucursal_id=1
         )
         Unidad.objects.create(lote=lote)
 
-        movimiento = Movimiento.objects.create(tipo='salida', creado_por=self.admin)
+        movimiento = Movimiento.objects.create(tipo='salida', creado_por=self.admin, sucursal_id=1)
         item = MovimientoItem.objects.create(
             movimiento=movimiento, producto=self.producto, cantidad=10, lote=lote
         )
@@ -217,7 +218,7 @@ class MovimientoItemModelTest(TestCase):
             item.asignar_unidades()
 
     def test_asignar_unidades_raises_if_no_lote(self):
-        movimiento = Movimiento.objects.create(tipo='salida', creado_por=self.admin)
+        movimiento = Movimiento.objects.create(tipo='salida', creado_por=self.admin, sucursal_id=1)
         item = MovimientoItem.objects.create(
             movimiento=movimiento, producto=self.producto, cantidad=1
         )
@@ -226,12 +227,12 @@ class MovimientoItemModelTest(TestCase):
 
     def test_verificar_vida_util_raises_if_no_equipo_cliente(self):
         lote = Lote.objects.create(
-            producto=self.producto, codigo_lote='L-VU', cantidad_inicial=5
+            producto=self.producto, codigo_lote='L-VU', cantidad_inicial=5, sucursal_id=1
         )
         for _ in range(5):
             Unidad.objects.create(lote=lote)
 
-        movimiento = Movimiento.objects.create(tipo='salida', creado_por=self.admin)
+        movimiento = Movimiento.objects.create(tipo='salida', creado_por=self.admin, sucursal_id=1)
         item = MovimientoItem.objects.create(
             movimiento=movimiento, producto=self.producto, cantidad=1, lote=lote
         )
@@ -246,7 +247,7 @@ class MovimientoItemModelTest(TestCase):
             equipo=equipo, cliente=cliente, alias='EQ-VU', contador_uso=100
         )
         lote = Lote.objects.create(
-            producto=self.producto, codigo_lote='L-VU2', cantidad_inicial=5
+            producto=self.producto, codigo_lote='L-VU2', cantidad_inicial=5, sucursal_id=1
         )
         for _ in range(5):
             Unidad.objects.create(lote=lote)
@@ -255,7 +256,7 @@ class MovimientoItemModelTest(TestCase):
         prev_mov = Movimiento.objects.create(
             tipo='salida', creado_por=self.admin,
             creado=timezone.now() - timezone.timedelta(days=30),
-            aprobado=True,
+            aprobado=True, sucursal_id=1,
         )
         DetalleSalida.objects.create(movimiento=prev_mov, cliente=cliente)
         prev_item = MovimientoItem.objects.create(
@@ -267,7 +268,7 @@ class MovimientoItemModelTest(TestCase):
             contador_uso_snapshot=50,
         )
 
-        movimiento = Movimiento.objects.create(tipo='salida', creado_por=self.admin)
+        movimiento = Movimiento.objects.create(tipo='salida', creado_por=self.admin, sucursal_id=1)
         DetalleSalida.objects.create(movimiento=movimiento, cliente=cliente)
         item = MovimientoItem.objects.create(
             movimiento=movimiento,
@@ -290,7 +291,7 @@ class MovimientoItemModelTest(TestCase):
             equipo=equipo, cliente=cliente, alias='EQ-VU2', contador_uso=52
         )
         lote = Lote.objects.create(
-            producto=self.producto, codigo_lote='L-VU3', cantidad_inicial=5
+            producto=self.producto, codigo_lote='L-VU3', cantidad_inicial=5, sucursal_id=1
         )
         for _ in range(5):
             Unidad.objects.create(lote=lote)
@@ -299,7 +300,7 @@ class MovimientoItemModelTest(TestCase):
         prev_mov = Movimiento.objects.create(
             tipo='salida', creado_por=self.admin,
             creado=timezone.now() - timezone.timedelta(days=30),
-            aprobado=True,
+            aprobado=True, sucursal_id=1,
         )
         DetalleSalida.objects.create(movimiento=prev_mov, cliente=cliente)
         prev_item = MovimientoItem.objects.create(
@@ -311,7 +312,7 @@ class MovimientoItemModelTest(TestCase):
             contador_uso_snapshot=50,
         )
 
-        movimiento = Movimiento.objects.create(tipo='salida', creado_por=self.admin)
+        movimiento = Movimiento.objects.create(tipo='salida', creado_por=self.admin, sucursal_id=1)
         DetalleSalida.objects.create(movimiento=movimiento, cliente=cliente)
         item = MovimientoItem.objects.create(
             movimiento=movimiento,
@@ -328,7 +329,7 @@ class MovimientoItemModelTest(TestCase):
 class DetalleEntradaModelTest(TestCase):
     def test_str(self):
         admin = _create_admin()
-        mov = Movimiento.objects.create(tipo='entrada', creado_por=admin)
+        mov = Movimiento.objects.create(tipo='entrada', creado_por=admin, sucursal_id=1)
         detalle = DetalleEntrada.objects.create(
             movimiento=mov, numero_factura='F001', recibido_por=admin
         )
@@ -340,7 +341,7 @@ class DetalleSalidaModelTest(TestCase):
         admin = _create_admin()
         sucursal = Sucursal.objects.create(nombre='Suc DS')
         cliente = Cliente.objects.create(nombre='Cliente DS', sucursal=sucursal)
-        mov = Movimiento.objects.create(tipo='salida', creado_por=admin)
+        mov = Movimiento.objects.create(tipo='salida', creado_por=admin, sucursal_id=1)
         detalle = DetalleSalida.objects.create(movimiento=mov, cliente=cliente)
         self.assertIn(str(mov.id), str(detalle))
 
@@ -354,6 +355,7 @@ class MovimientoSerializerTest(APITestCase):
         self.factory = APIRequestFactory()
         self.request = self.factory.post('/')
         self.request.user = self.admin
+        self.request.branch_id = 1
         self.producto = _create_producto()
 
     def test_validate_items_rejects_empty(self):
@@ -388,7 +390,7 @@ class MovimientoSerializerTest(APITestCase):
 
     def test_validate_salida_checks_unidad_availability(self):
         lote = Lote.objects.create(
-            producto=self.producto, codigo_lote='L-SER', cantidad_inicial=1
+            producto=self.producto, codigo_lote='L-SER', cantidad_inicial=1, sucursal_id=1
         )
         Unidad.objects.create(lote=lote)
 
@@ -411,7 +413,7 @@ class MovimientoSerializerTest(APITestCase):
 
     def test_validate_entrada_success(self):
         lote = Lote.objects.create(
-            producto=self.producto, codigo_lote='L-SER2', cantidad_inicial=10
+            producto=self.producto, codigo_lote='L-SER2', cantidad_inicial=10, sucursal_id=1
         )
         for _ in range(10):
             Unidad.objects.create(lote=lote)
@@ -448,7 +450,7 @@ class MovimientoViewSetTest(APITestCase):
 
     def test_create_entrada(self):
         lote = Lote.objects.create(
-            producto=self.producto, codigo_lote='L-VIEW', cantidad_inicial=10
+            producto=self.producto, codigo_lote='L-VIEW', cantidad_inicial=10, sucursal=self.sucursal
         )
         for _ in range(10):
             Unidad.objects.create(lote=lote)
@@ -467,13 +469,12 @@ class MovimientoViewSetTest(APITestCase):
 
     def test_create_salida(self):
         lote = Lote.objects.create(
-            producto=self.producto, codigo_lote='L-VIEW2', cantidad_inicial=10
+            producto=self.producto, codigo_lote='L-VIEW2', cantidad_inicial=10, sucursal=self.sucursal
         )
         for _ in range(10):
             Unidad.objects.create(lote=lote)
 
-        sucursal = Sucursal.objects.create(nombre='Suc View2')
-        cliente = Cliente.objects.create(nombre='CView', sucursal=sucursal)
+        cliente = Cliente.objects.create(nombre='CView', sucursal=self.sucursal)
 
         url = reverse('movimientos-list')
         data = {
@@ -493,7 +494,7 @@ class MovimientoViewSetTest(APITestCase):
     @patch('movimiento.models.validar_factura_entrada')
     def test_aprobar_endpoint_success(self, mock_val):
         mock_val.return_value = True
-        movimiento = Movimiento.objects.create(tipo='entrada', creado_por=self.admin)
+        movimiento = Movimiento.objects.create(tipo='entrada', creado_por=self.admin, sucursal=self.sucursal)
         DetalleEntrada.objects.create(
             movimiento=movimiento, numero_factura='F-APR', recibido_por=self.admin
         )
@@ -513,7 +514,7 @@ class MovimientoViewSetTest(APITestCase):
         oper.profile.sucursales.add(self.sucursal)
         self.client.force_login(oper)
 
-        movimiento = Movimiento.objects.create(tipo='entrada', creado_por=self.admin)
+        movimiento = Movimiento.objects.create(tipo='entrada', creado_por=self.admin, sucursal=self.sucursal)
         DetalleEntrada.objects.create(
             movimiento=movimiento, numero_factura='F-REJ', recibido_por=self.admin
         )
@@ -523,12 +524,12 @@ class MovimientoViewSetTest(APITestCase):
 
         url = reverse('movimientos-aprobar', kwargs={'pk': movimiento.pk})
         response = self._post(url, {})
-        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.status_code, 403)
         self.assertIn('Solo administradores', str(response.data['detail']))
 
     def test_aprobar_endpoint_rejects_duplicate(self):
         movimiento = Movimiento.objects.create(
-            tipo='entrada', creado_por=self.admin, aprobado=True
+            tipo='entrada', creado_por=self.admin, aprobado=True, sucursal=self.sucursal
         )
         DetalleEntrada.objects.create(
             movimiento=movimiento, numero_factura='F-DUP', recibido_por=self.admin
@@ -539,13 +540,13 @@ class MovimientoViewSetTest(APITestCase):
 
         url = reverse('movimientos-aprobar', kwargs={'pk': movimiento.pk})
         response = self._post(url, {})
-        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.status_code, 400)
         self.assertIn('ya aprobado', str(response.data['detail']))
 
     @patch('movimiento.models.validar_factura_entrada')
     def test_aprobar_endpoint_rejects_invalid_factura(self, mock_val):
         mock_val.side_effect = ValidationError('Factura invalida')
-        movimiento = Movimiento.objects.create(tipo='entrada', creado_por=self.admin)
+        movimiento = Movimiento.objects.create(tipo='entrada', creado_por=self.admin, sucursal=self.sucursal)
         DetalleEntrada.objects.create(
             movimiento=movimiento, numero_factura='F-BAD', recibido_por=self.admin
         )
@@ -561,8 +562,8 @@ class MovimientoViewSetTest(APITestCase):
         self.assertFalse(movimiento.aprobado)
 
     def test_list_returns_movimientos(self):
-        Movimiento.objects.create(tipo='entrada', creado_por=self.admin)
-        Movimiento.objects.create(tipo='salida', creado_por=self.admin)
+        Movimiento.objects.create(tipo='entrada', creado_por=self.admin, sucursal=self.sucursal)
+        Movimiento.objects.create(tipo='salida', creado_por=self.admin, sucursal=self.sucursal)
         url = reverse('movimientos-list')
         response = self._get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -570,11 +571,11 @@ class MovimientoViewSetTest(APITestCase):
 
     def test_list_filters_by_date(self):
         old = Movimiento.objects.create(
-            tipo='entrada', creado_por=self.admin,
+            tipo='entrada', creado_por=self.admin, sucursal=self.sucursal,
             creado=timezone.now() - timezone.timedelta(days=60),
         )
         recent = Movimiento.objects.create(
-            tipo='entrada', creado_por=self.admin,
+            tipo='entrada', creado_por=self.admin, sucursal=self.sucursal,
         )
         url = reverse('movimientos-list')
         today = timezone.now().date()
@@ -585,16 +586,16 @@ class MovimientoViewSetTest(APITestCase):
 
     def test_get_oldest_returns_date(self):
         Movimiento.objects.create(
-            tipo='entrada', creado_por=self.admin,
+            tipo='entrada', creado_por=self.admin, sucursal=self.sucursal,
             creado=timezone.now() - timezone.timedelta(days=100),
         )
         url = reverse('movimientos-get-oldest')
         response = self._get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIsInstance(response.data, datetime.date)
+        self.assertEqual(response.data, {'fecha': (timezone.now() - timezone.timedelta(days=100)).date()})
 
     def test_retrieve_returns_movimiento(self):
-        movimiento = Movimiento.objects.create(tipo='entrada', creado_por=self.admin)
+        movimiento = Movimiento.objects.create(tipo='entrada', creado_por=self.admin, sucursal=self.sucursal)
         url = reverse('movimientos-detail', kwargs={'pk': movimiento.pk})
         response = self._get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)

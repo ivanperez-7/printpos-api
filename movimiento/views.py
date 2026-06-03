@@ -3,7 +3,7 @@ from datetime import date
 from django.db.models import Prefetch
 from django.http import HttpResponse
 from django_filters import rest_framework as filters
-from rest_framework import viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -33,6 +33,7 @@ class MovimientoViewSet(ActivityLogMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
+        queryset = queryset.filter(sucursal=self.request.branch_id)
         fecha_inicio = self.request.query_params.get('fechaInicio')
         fecha_fin = self.request.query_params.get('fechaFin')
 
@@ -66,16 +67,20 @@ class MovimientoViewSet(ActivityLogMixin, viewsets.ModelViewSet):
                 segmentos=segmentos,
             )
             return Response({'status': 'aprobado'})
+        except PermissionError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_403_FORBIDDEN)
+        except ValueError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({'detail': str(e)}, status=500)
     
     @action(detail=False, methods=['get'])
     def get_oldest(self, request):
-        qs = self.filter_queryset(Movimiento.objects.all()) # así para no filtrar por fecha
+        qs = self.filter_queryset(Movimiento.objects.filter(sucursal=request.branch_id)) # branch scope, sin filtrar por fecha
         oldest = qs.order_by('id').first()
         if oldest:
-            return Response(oldest.creado.date())
-        return Response(date.today())
+            return Response({'fecha': oldest.creado.date()})
+        return Response({'fecha': date.today()})
 
     @action(detail=True, methods=['get'])
     def etiquetas(self, request, pk=None):

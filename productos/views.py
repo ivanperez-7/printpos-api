@@ -53,12 +53,16 @@ class LoteViewSet(ActivityLogMixin, viewsets.ModelViewSet):
     filterset_fields = ['producto', 'codigo_lote']
 
     def get_queryset(self):
-        return lotes_queryset()
+        return lotes_queryset(sucursal_id=self.request.branch_id)
 
 
 class UnidadViewSet(viewsets.ModelViewSet):
-    queryset = Unidad.objects.exclude(lote__producto__status='inactivo').select_related('lote')
     serializer_class = UnidadSerializer
+
+    def get_queryset(self):
+        return Unidad.objects.exclude(lote__producto__status='inactivo').filter(
+            lote__sucursal=self.request.branch_id
+        ).select_related('lote')
 
 
 class CategoriaViewSet(ActivityLogMixin, viewsets.ModelViewSet):
@@ -123,21 +127,26 @@ class ProveedorViewSet(ActivityLogMixin, viewsets.ModelViewSet):
 
 @api_view()
 def dashboard_view(request):
-    productos = productos_queryset()
+    branch_id = request.branch_id
+    productos = productos_queryset(sucursal_id=branch_id)
     categorias = Categoría.objects.all()
 
     hace_30_dias = (timezone.now() - timezone.timedelta(days=30)).date()
 
-    movs_filter = Q(movimientoitem__movimiento__creado__date__gte=hace_30_dias, movimientoitem__movimiento__aprobado=True)
+    movs_filter = Q(
+        movimientoitem__movimiento__creado__date__gte=hace_30_dias,
+        movimientoitem__movimiento__aprobado=True,
+        movimientoitem__movimiento__sucursal=branch_id,
+    )
 
     return Response(
         {
             'stats': {
                 'productos': productos.count(),
-                'lotes': lotes_queryset().filter(cantidad_restante__gt=0).count(),
+                'lotes': lotes_queryset(sucursal_id=branch_id).filter(cantidad_restante__gt=0).count(),
                 'categorias': categorias.count(),
                 'proveedores': Proveedor.objects.filter(activo=True).count(),
-                'clientes': Cliente.objects.filter(activo=True, sucursal=request.branch_id).count(),
+                'clientes': Cliente.objects.filter(activo=True, sucursal=branch_id).count(),
             },
             'categoriasChart': (
                 categorias.values('nombre').annotate(
@@ -146,7 +155,9 @@ def dashboard_view(request):
                 .filter(cantidad__gt=0)
             ),
             'movimientosChart': (
-                Movimiento.objects.filter(creado__date__gte=hace_30_dias, aprobado=True)
+                Movimiento.objects.filter(
+                    creado__date__gte=hace_30_dias, aprobado=True, sucursal=branch_id
+                )
                 .values(fecha_creado=F('creado__date'))
                 .annotate(
                     entradas=Count('id', filter=Q(tipo='entrada')),

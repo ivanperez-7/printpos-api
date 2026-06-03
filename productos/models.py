@@ -103,6 +103,7 @@ class Producto(models.Model):
 class Lote(models.Model):
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name='lotes')
     codigo_lote = models.CharField(max_length=100, unique=True)
+    sucursal = models.ForeignKey('organizacion.Sucursal', on_delete=models.PROTECT, related_name='lotes')
 
     cantidad_inicial = models.PositiveIntegerField()
 

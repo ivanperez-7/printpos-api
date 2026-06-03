@@ -10,28 +10,34 @@ from productos.queries import productos_queryset
 from .models import AlertaInventario
 
 
-def _crear_si_no_existe(producto, tipo, mensaje):
-    if not AlertaInventario.objects.filter(producto=producto, tipo_alerta=tipo, resuelto=False).exists():
-        AlertaInventario.objects.create(producto=producto, tipo_alerta=tipo, mensaje=mensaje)
+def _crear_si_no_existe(producto, tipo, mensaje, sucursal_id):
+    if not AlertaInventario.objects.filter(
+        producto=producto, tipo_alerta=tipo, resuelto=False, sucursal_id=sucursal_id
+    ).exists():
+        AlertaInventario.objects.create(
+            producto=producto, tipo_alerta=tipo, mensaje=mensaje, sucursal_id=sucursal_id
+        )
         return True
     return False
 
 
-def generar_low_stock():
-    productos = productos_queryset()
+def generar_low_stock(sucursal_id):
+    productos = productos_queryset(sucursal_id=sucursal_id)
 
     ids_bajos = set(
         productos.filter(cantidad_disponible__lt=F('min_stock'))
         .values_list('pk', flat=True)
     )
 
-    alertas_existentes = AlertaInventario.objects.filter(tipo_alerta='low_stock', resuelto=False)
+    alertas_existentes = AlertaInventario.objects.filter(
+        tipo_alerta='low_stock', resuelto=False, sucursal_id=sucursal_id
+    )
 
     creadas = 0
     for p in productos.filter(pk__in=ids_bajos):
         if not alertas_existentes.filter(producto=p).exists():
             AlertaInventario.objects.create(
-                producto=p, tipo_alerta='low_stock',
+                producto=p, tipo_alerta='low_stock', sucursal_id=sucursal_id,
                 mensaje=(
                     f"{p.descripcion}: {p.cantidad_disponible} uds disponibles "
                     f"(mínimo: {p.min_stock})"
@@ -44,26 +50,27 @@ def generar_low_stock():
     return creadas, resueltas
 
 
-def generar_old_product():
+def generar_old_product(sucursal_id):
     hace_un_ano = timezone.now() - timedelta(days=365)
 
     ids_antiguos = set(
         Producto.objects.filter(
             status='activo',
             lotes__fecha_entrada__lt=hace_un_ano,
+            lotes__sucursal=sucursal_id,
             lotes__unidades__status='disponible',
         ).values_list('pk', flat=True).distinct()
     )
 
     alertas_existentes = AlertaInventario.objects.filter(
-        tipo_alerta='old_product', resuelto=False
+        tipo_alerta='old_product', resuelto=False, sucursal_id=sucursal_id
     )
 
     creadas = 0
     for p in Producto.objects.filter(pk__in=ids_antiguos).only('pk', 'descripcion'):
         if not alertas_existentes.filter(producto=p).exists():
             AlertaInventario.objects.create(
-                producto=p, tipo_alerta='old_product',
+                producto=p, tipo_alerta='old_product', sucursal_id=sucursal_id,
                 mensaje=(
                     f"{p.descripcion} tiene lotes con más de 1 año de antigüedad "
                     f"con existencias disponibles."
@@ -76,7 +83,7 @@ def generar_old_product():
     return creadas, resueltas
 
 
-def generar_unusual_movement():
+def generar_unusual_movement(sucursal_id):
     now = timezone.now()
     hace_30_dias = now - timedelta(days=30)
     hace_6_meses = now - timedelta(days=180)
@@ -85,6 +92,7 @@ def generar_unusual_movement():
         MovimientoItem.objects.filter(
             movimiento__tipo='salida',
             movimiento__aprobado=True,
+            movimiento__sucursal=sucursal_id,
             movimiento__creado__gte=hace_30_dias,
         )
         .values('producto_id')
@@ -98,6 +106,7 @@ def generar_unusual_movement():
         hist_items = MovimientoItem.objects.filter(
             movimiento__tipo='salida',
             movimiento__aprobado=True,
+            movimiento__sucursal=sucursal_id,
             movimiento__creado__gte=hace_6_meses,
             movimiento__creado__lt=hace_30_dias,
             producto_id=producto_id,
@@ -115,19 +124,20 @@ def generar_unusual_movement():
                 f"{producto.descripcion}: {total_actual} salidas en 30 días "
                 f"(promedio histórico: {hist_promedio:.1f} mensual)"
             )
-            if _crear_si_no_existe(producto, 'unusual_movement', mensaje):
+            if _crear_si_no_existe(producto, 'unusual_movement', mensaje, sucursal_id):
                 creadas += 1
 
     return creadas, 0
 
 
-def generar_high_rotation(top_n=10):
+def generar_high_rotation(sucursal_id, top_n=10):
     now = timezone.now()
     hace_30_dias = now - timedelta(days=30)
 
     top_productos = list(
         MovimientoItem.objects.filter(
             movimiento__aprobado=True,
+            movimiento__sucursal=sucursal_id,
             movimiento__creado__gte=hace_30_dias,
         )
         .values('producto_id')
@@ -146,12 +156,12 @@ def generar_high_rotation(top_n=10):
             f"{producto.descripcion}: {entry['total']} movimientos en los últimos "
             f"30 días (alta rotación)"
         )
-        if _crear_si_no_existe(producto, 'high_rotation', mensaje):
+        if _crear_si_no_existe(producto, 'high_rotation', mensaje, sucursal_id):
             creadas += 1
 
     top_ids = [entry['producto_id'] for entry in top_productos]
     resueltas = AlertaInventario.objects.filter(
-        tipo_alerta='high_rotation', resuelto=False
+        tipo_alerta='high_rotation', resuelto=False, sucursal_id=sucursal_id
     ).exclude(producto_id__in=top_ids).update(resuelto=True)
 
     return creadas, resueltas

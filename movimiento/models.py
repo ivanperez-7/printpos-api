@@ -25,6 +25,7 @@ class Movimiento(models.Model):
         User, on_delete=models.SET_NULL, null=True, related_name='movimientos_aprobados'
     )
     comentarios = models.TextField(blank=True, null=True)
+    sucursal = models.ForeignKey('organizacion.Sucursal', on_delete=models.PROTECT, related_name='movimientos')
 
     class Meta:
         ordering = ['-creado']
@@ -41,6 +42,8 @@ class Movimiento(models.Model):
 
         if user.profile.rol != 'admin':
             raise PermissionError('Solo administradores pueden aprobar movimientos.')
+        if not user.profile.sucursales.filter(id=self.sucursal_id).exists():
+            raise PermissionError('No tienes permisos para aprobar movimientos de esta sucursal.')
         if self.aprobado:
             raise ValueError('Movimiento ya aprobado.')
 
@@ -127,6 +130,7 @@ class MovimientoItem(models.Model):
             producto=self.producto,
             codigo_lote=codigo,
             cantidad_inicial=self.cantidad,
+            sucursal=self.movimiento.sucursal,
         )
 
         unidades = [Unidad(lote=lote) for _ in range(self.cantidad)]
