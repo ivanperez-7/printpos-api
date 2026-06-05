@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.middleware.csrf import get_token
 from django.urls import reverse
+from langchain_core.exceptions import OutputParserException
 from rest_framework import status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -183,7 +184,6 @@ class RegistroActividadViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 def chat(request):
     from utils.chatbot import obtener_agente
 
@@ -195,8 +195,15 @@ def chat(request):
         )
 
     try:
-        agente = obtener_agente()
+        agente = obtener_agente(branch_id=request.branch_id)
         resultado = agente.invoke({"input": pregunta})
-        return Response({'respuesta': resultado['output']})
+        respuesta = resultado['output']
+    except OutputParserException:
+        agente = obtener_agente(branch_id=request.branch_id)
+        resultado = agente.invoke({
+            "input": f"{pregunta}\n\nResponde en texto plano sin formato."
+        })
+        respuesta = resultado['output']
     except Exception as e:
         return Response({'detail': str(e)}, status=500)
+    return Response({'respuesta': respuesta})

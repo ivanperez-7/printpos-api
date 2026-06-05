@@ -54,6 +54,13 @@ class MovimientoItemSerializer(serializers.ModelSerializer):
                 sucursal=request.branch_id
             ).select_related('producto')
 
+    def validate(self, data):
+        if data.get('cambio_anticipado') and not (data.get('motivo_cambio') or '').strip():
+            raise serializers.ValidationError(
+                {'motivo_cambio': 'Requerido cuando es cambio anticipado.'}
+            )
+        return data
+
 
 class DetalleEntradaSerializer(serializers.ModelSerializer):
     recibido_por = UserSerializer(read_only=True)

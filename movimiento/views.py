@@ -57,13 +57,17 @@ class MovimientoViewSet(ActivityLogMixin, viewsets.ModelViewSet):
         try:
             movimiento = self.get_object()
             movimiento.approve(request.user)
+            descripcion = f'Aprobó el {movimiento}'
             segmentos = [
                 {"texto": "Aprobó el "},
                 {"texto": str(movimiento), "tipo": "movimiento", "id": movimiento.pk},
             ]
+            if movimiento.items.filter(cambio_anticipado=True).exists():
+                segmentos.append({"texto": ' con cambios anticipados', "tipo": "alerta"})
+                
             RegistroActividad.objects.create(
                 usuario=request.user, accion='approve',
-                descripcion=f'Aprobó el {movimiento}',
+                descripcion=descripcion,
                 segmentos=segmentos,
                 sucursal_id=request.branch_id,
             )

@@ -1,15 +1,22 @@
 from django.contrib.auth.models import User
 from django.urls import reverse
-from rest_framework.test import APITestCase
+from rest_framework.test import APITestCase, APIRequestFactory
 from rest_framework import status
 
-from movimiento.models import Movimiento, MovimientoItem
+from movimiento.models import Movimiento, MovimientoItem, DetalleSalida
+from system.models import RegistroActividad
 from organizacion.models import Cliente, EquipoCliente, PerfilUsuario, Sucursal
 from .models import Marca, Equipo, Categoría, Proveedor, Producto, Lote, Unidad
 from .serializers import (
     CategoriaSerializer, MarcaSerializer, EquipoSerializer, ProveedorSerializer,
     ProductoSerializer, LoteSerializer, UnidadSerializer
 )
+
+
+def _create_operativo():
+    user = User.objects.create_user(username='oper', password='pass')
+    PerfilUsuario.objects.create(usuario=user, rol='operativo')
+    return user
 
 
 class MarcaModelTest(APITestCase):
@@ -141,7 +148,14 @@ class ProductoSerializerTest(APITestCase):
             min_stock=20,
             proveedor=proveedor
         )
-        serializer = ProductoSerializer(producto)
+        user = _create_operativo()
+
+        factory = APIRequestFactory()
+        request = factory.post('/')
+        request.user = user
+        request.branch_id = 1
+
+        serializer = ProductoSerializer(producto, context={'request': request})
         self.assertEqual(serializer.data['codigo_interno'], "P004")
         self.assertEqual(serializer.data['categoria']['nombre'], "Papel")
         self.assertEqual(serializer.data['proveedor']['nombre'], "Proveedor6")
@@ -160,13 +174,20 @@ class LoteSerializerTest(APITestCase):
             min_stock=15,
             proveedor=proveedor
         )
+        sucursal = Sucursal.objects.create(nombre="Suc Lote Test")
         lote = Lote.objects.create(
             producto=producto,
             codigo_lote="L003",
             cantidad_inicial=200,
-            sucursal_id=1,
+            sucursal=sucursal,
         )
-        serializer = LoteSerializer(lote)
+        user = _create_operativo()
+
+        factory = APIRequestFactory()
+        request = factory.post('/')
+        request.user = user
+        request.branch_id = 1
+        serializer = LoteSerializer(lote, context={'request': request})
         self.assertEqual(serializer.data['codigo_lote'], "L003")
 
 
@@ -465,3 +486,109 @@ class ProveedorViewSetTest(APITestCase):
         data = {'nombre': 'Nuevo Prov'}
         response = self.client.post(url, data, format='json', **self.headers)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+
+class CambioAnticipadoTest(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(username='admin_ca', password='pass')
+        PerfilUsuario.objects.create(usuario=self.admin, rol='admin')
+        self.operativo = User.objects.create_user(username='op_ca', password='pass')
+        PerfilUsuario.objects.create(usuario=self.operativo, rol='operativo')
+
+        self.sucursal = Sucursal.objects.create(nombre='Suc CA')
+        self.admin.profile.sucursales.add(self.sucursal)
+        self.operativo.profile.sucursales.add(self.sucursal)
+
+        self.categoria = Categoría.objects.create(nombre='Cat CA')
+        self.proveedor = Proveedor.objects.create(nombre='Prov CA')
+        self.marca = Marca.objects.create(nombre='Marca CA')
+        self.equipo = Equipo.objects.create(nombre='EQ-CA', marca=self.marca)
+        self.producto = Producto.objects.create(
+            codigo_interno='P-CA', descripcion='Test CA',
+            categoria=self.categoria, unidad_medida='pieza',
+            sku='SKU-CA', min_stock=1, proveedor=self.proveedor,
+            vida_util=100,
+        )
+
+        self.lote = Lote.objects.create(
+            producto=self.producto, codigo_lote='L-CA',
+            cantidad_inicial=5, sucursal=self.sucursal,
+        )
+        Unidad.objects.bulk_create([Unidad(lote=self.lote) for _ in range(5)])
+
+        self.cliente = Cliente.objects.create(nombre='Cli CA', sucursal=self.sucursal)
+        self.equipo_cliente = EquipoCliente.objects.create(
+            equipo=self.equipo, cliente=self.cliente,
+            alias='CA-Alias', contador_uso=50,
+        )
+
+        prior_mov = Movimiento.objects.create(
+            tipo='salida', creado_por=self.operativo, sucursal=self.sucursal,
+        )
+        DetalleSalida.objects.create(movimiento=prior_mov, cliente=self.cliente, tecnico='Prior')
+        MovimientoItem.objects.create(
+            movimiento=prior_mov, producto=self.producto, cantidad=1,
+            lote=self.lote, equipo_cliente=self.equipo_cliente,
+            contador_uso_snapshot=0,
+        )
+
+        self.headers = {'HTTP_X_BRANCH_ID': self.sucursal.id}
+
+    def _create_salida(self, user, extra_item_data=None):
+        self.client.force_login(user)
+        item_data = {
+            'producto_id': self.producto.pk,
+            'cantidad': 1,
+            'lote_id': self.lote.pk,
+            'equipo_cliente_id': self.equipo_cliente.pk,
+        }
+        if extra_item_data:
+            item_data.update(extra_item_data)
+
+        data = {
+            'tipo': 'salida',
+            'items': [item_data],
+            'detalle_salida': {
+                'cliente_id': self.cliente.pk,
+                'tecnico': 'Test',
+            },
+        }
+        return self.client.post(
+            reverse('movimientos-list'),
+            data, format='json', **self.headers,
+        )
+
+    def test_salida_sin_flag_rechaza_aprobacion(self):
+        response = self._create_salida(self.operativo)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        mov_id = response.data['id']
+
+        self.client.force_login(self.admin)
+        url = reverse('movimientos-aprobar', args=[mov_id])
+        response = self.client.post(url, **self.headers)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_salida_con_flag_aprueba(self):
+        response = self._create_salida(self.operativo, {
+            'cambio_anticipado': True,
+            'motivo_cambio': 'Urgencia cliente',
+        })
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        mov_id = response.data['id']
+
+        self.client.force_login(self.admin)
+        url = reverse('movimientos-aprobar', args=[mov_id])
+        response = self.client.post(url, **self.headers)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        registro = RegistroActividad.objects.filter(accion='approve').latest('id')
+        self.assertIn('Cambio anticipado', registro.descripcion)
+        self.assertIn('P-CA', registro.descripcion)
+        self.assertIn('Urgencia cliente', registro.descripcion)
+
+    def test_salida_flag_sin_motivo_rechaza(self):
+        response = self._create_salida(self.operativo, {
+            'cambio_anticipado': True,
+            'motivo_cambio': '',
+        })
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

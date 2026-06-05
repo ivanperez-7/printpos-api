@@ -114,6 +114,8 @@ class MovimientoItem(models.Model):
         EquipoCliente, on_delete=models.SET_NULL, null=True, blank=True
     )
     contador_uso_snapshot = models.PositiveIntegerField(null=True, blank=True)
+    cambio_anticipado = models.BooleanField(default=False)
+    motivo_cambio = models.TextField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
         # Si se indica lote, validar que el producto del lote coincida con el producto del item
@@ -159,7 +161,7 @@ class MovimientoItem(models.Model):
 
         if ultima:
             uso_desde_ultima = eq_cli.contador_uso - ultima.contador_uso_snapshot
-            if uso_desde_ultima < producto.vida_util:
+            if uso_desde_ultima < producto.vida_util and not self.cambio_anticipado:
                 raise ValueError(
                     f'{producto.codigo_interno} requiere {producto.vida_util} unidades de uso '
                     f'entre entregas. Solo se han consumido {uso_desde_ultima} desde la última entrega.'

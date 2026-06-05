@@ -30,6 +30,7 @@ class RegistroActividad(models.Model):
         ('approve', 'Aprobación'),
         ('login', 'Inicio de sesión'),
         ('export', 'Exportación de datos'),
+        ('query', 'Consulta chatbot'),
     ]
 
     usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
