@@ -11,6 +11,7 @@ from .models import Movimiento, MovimientoItem
 from .serializers import MovimientoSerializer
 from productos.models import Lote
 from system.models import RegistroActividad
+from utils.exports import xlsx_response
 from utils.mixins import ActivityLogMixin
 from utils.pdf_barcodes import generate_lot_labels_pdf
 
@@ -79,6 +80,23 @@ class MovimientoViewSet(ActivityLogMixin, viewsets.ModelViewSet):
         except Exception as e:
             return Response({'detail': str(e)}, status=500)
     
+    @action(detail=False, methods=['get'])
+    def exportar(self, request):
+        movimientos = self.filter_queryset(self.get_queryset())
+        headers = ['ID', 'Tipo', 'Fecha', 'Aprobado', 'Producto', 'Cantidad']
+        rows = []
+        for mov in movimientos:
+            for item in mov.items.all():
+                rows.append([
+                    mov.id,
+                    mov.get_tipo_display(),
+                    mov.creado.strftime('%d/%m/%Y %H:%M'),
+                    'Sí' if mov.aprobado else 'No',
+                    item.producto.codigo_interno,
+                    item.cantidad,
+                ])
+        return xlsx_response(headers, rows, 'movimientos.xlsx', sheet_title='Movimientos')
+
     @action(detail=False, methods=['get'])
     def get_oldest(self, request):
         qs = self.filter_queryset(Movimiento.objects.filter(sucursal=request.branch_id)) # branch scope, sin filtrar por fecha

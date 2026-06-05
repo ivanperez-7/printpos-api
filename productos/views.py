@@ -9,7 +9,8 @@ from .models import Categoría, Marca, Proveedor, Equipo, Unidad
 from .serializers import *
 from movimiento.models import Movimiento, MovimientoItem
 from organizacion.models import Cliente, EquipoCliente
-from productos.queries import lotes_queryset, productos_queryset
+from productos.queries import lotes_queryset, productos_queryset, rendimiento_data, reorden_data
+from utils.exports import xlsx_response
 from utils.mixins import ActivityLogMixin
 
 __all__ = [
@@ -21,6 +22,11 @@ __all__ = [
     'EquipoViewSet',
     'ProveedorViewSet',
     'dashboard_view',
+    'rendimiento_view',
+    'reorden_view',
+    'exportar_existencias_view',
+    'exportar_rendimiento_view',
+    'exportar_reorden_view',
 ]
 
 
@@ -180,3 +186,83 @@ def dashboard_view(request):
             ),
         }
     )
+
+
+@api_view()
+def rendimiento_view(request):
+    fecha_inicio = request.query_params.get('fechaInicio')
+    fecha_fin = request.query_params.get('fechaFin')
+    data = rendimiento_data(
+        sucursal_id=request.branch_id,
+        fecha_inicio=fecha_inicio,
+        fecha_fin=fecha_fin,
+    )
+    return Response(data)
+
+
+@api_view()
+def reorden_view(request):
+    data = reorden_data(sucursal_id=request.branch_id)
+    return Response(data)
+
+
+@api_view()
+def exportar_reorden_view(request):
+    grupos = reorden_data(sucursal_id=request.branch_id)
+    headers = [
+        'Proveedor', 'Código', 'Descripción', 'Disponible', 'Mínimo',
+        'Consumo mensual', 'Días cobertura', 'Cantidad sugerida',
+    ]
+    rows = []
+    for grupo in grupos:
+        for p in grupo['productos']:
+            rows.append([
+                grupo['proveedor_nombre'],
+                p['codigo_interno'],
+                p['descripcion'],
+                p['cantidad_disponible'],
+                p['min_stock'],
+                p['consumo_mensual'],
+                p['dias_cobertura'],
+                p['cantidad_sugerida'],
+            ])
+    return xlsx_response(headers, rows, 'reorden.xlsx', sheet_title='Reorden')
+
+
+@api_view()
+def exportar_existencias_view(request):
+    productos = productos_queryset(request.branch_id).order_by('codigo_interno')
+    headers = ['Código', 'Descripción', 'Categoría', 'Disponible', 'Mínimo']
+    rows = [
+        [
+            p.codigo_interno,
+            p.descripcion,
+            p.categoria.nombre,
+            p.cantidad_disponible,
+            p.min_stock,
+        ]
+        for p in productos
+    ]
+    return xlsx_response(headers, rows, 'existencias.xlsx', sheet_title='Existencias')
+
+
+@api_view()
+def exportar_rendimiento_view(request):
+    data = rendimiento_data(
+        sucursal_id=request.branch_id,
+        fecha_inicio=request.query_params.get('fechaInicio'),
+        fecha_fin=request.query_params.get('fechaFin'),
+    )
+    headers = ['Código', 'Descripción', 'Vida útil', 'Ciclos', 'Uso promedio', 'Ratio']
+    rows = [
+        [
+            r['codigo_interno'],
+            r['descripcion'],
+            r['vida_util'],
+            r['ciclos'],
+            r['uso_promedio'],
+            r['ratio'],
+        ]
+        for r in data
+    ]
+    return xlsx_response(headers, rows, 'rendimiento.xlsx', sheet_title='Rendimiento')

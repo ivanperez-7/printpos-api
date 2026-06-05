@@ -16,4 +16,9 @@ router.register(r'proveedores', ProveedorViewSet)
 urlpatterns = [
     path('', include(router.urls)),
     path('dashboard/', dashboard_view),
+    path('rendimiento/', rendimiento_view),
+    path('reorden/', reorden_view),
+    path('exportar/existencias/', exportar_existencias_view),
+    path('exportar/rendimiento/', exportar_rendimiento_view),
+    path('exportar/reorden/', exportar_reorden_view),
 ]

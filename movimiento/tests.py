@@ -600,3 +600,28 @@ class MovimientoViewSetTest(APITestCase):
         response = self._get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['id'], movimiento.pk)
+
+    def test_exportar_xlsx(self):
+        import io
+        from openpyxl import load_workbook
+
+        movimiento = Movimiento.objects.create(tipo='entrada', creado_por=self.admin, sucursal=self.sucursal)
+        MovimientoItem.objects.create(movimiento=movimiento, producto=self.producto, cantidad=7)
+
+        url = reverse('movimientos-exportar')
+        response = self._get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response['Content-Type'],
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+
+        ws = load_workbook(io.BytesIO(response.content)).active
+        self.assertEqual(
+            [c.value for c in ws[1]],
+            ['ID', 'Tipo', 'Fecha', 'Aprobado', 'Producto', 'Cantidad'],
+        )
+        fila = [c.value for c in ws[2]]
+        self.assertEqual(fila[0], movimiento.pk)
+        self.assertEqual(fila[4], self.producto.codigo_interno)
+        self.assertEqual(fila[5], 7)

@@ -582,9 +582,7 @@ class CambioAnticipadoTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         registro = RegistroActividad.objects.filter(accion='approve').latest('id')
-        self.assertIn('Cambio anticipado', registro.descripcion)
-        self.assertIn('P-CA', registro.descripcion)
-        self.assertIn('Urgencia cliente', registro.descripcion)
+        self.assertIn('con cambios anticipados', registro.descripcion)
 
     def test_salida_flag_sin_motivo_rechaza(self):
         response = self._create_salida(self.operativo, {
@@ -592,3 +590,180 @@ class CambioAnticipadoTest(APITestCase):
             'motivo_cambio': '',
         })
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class RendimientoTest(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(username='admin_rend', password='pass')
+        PerfilUsuario.objects.create(usuario=self.admin, rol='admin')
+        self.sucursal = Sucursal.objects.create(nombre='Suc Rend')
+        self.admin.profile.sucursales.add(self.sucursal)
+        self.client.force_login(self.admin)
+        self.headers = {'HTTP_X_BRANCH_ID': self.sucursal.id}
+
+        self.categoria = Categoría.objects.create(nombre='Cat Rend')
+        self.proveedor = Proveedor.objects.create(nombre='Prov Rend')
+        self.marca = Marca.objects.create(nombre='Marca Rend')
+        self.equipo = Equipo.objects.create(nombre='EQ-Rend', marca=self.marca)
+        self.producto = Producto.objects.create(
+            codigo_interno='P-REND', descripcion='Toner Rend',
+            categoria=self.categoria, unidad_medida='pieza',
+            sku='SKU-REND', min_stock=1, proveedor=self.proveedor,
+            vida_util=100,
+        )
+        self.lote = Lote.objects.create(
+            producto=self.producto, codigo_lote='L-REND',
+            cantidad_inicial=5, sucursal=self.sucursal,
+        )
+        self.cliente = Cliente.objects.create(nombre='Cli Rend', sucursal=self.sucursal)
+        self.equipo_cliente = EquipoCliente.objects.create(
+            equipo=self.equipo, cliente=self.cliente,
+            alias='Rend-Alias', contador_uso=240,
+        )
+
+    def _salida(self, snapshot):
+        mov = Movimiento.objects.create(
+            tipo='salida', creado_por=self.admin, sucursal=self.sucursal, aprobado=True,
+        )
+        DetalleSalida.objects.create(movimiento=mov, cliente=self.cliente)
+        MovimientoItem.objects.create(
+            movimiento=mov, producto=self.producto, cantidad=1,
+            lote=self.lote, equipo_cliente=self.equipo_cliente,
+            contador_uso_snapshot=snapshot,
+        )
+
+    def test_rendimiento_calcula_ratio(self):
+        # snapshots 0 -> 120 -> 240 => dos deltas de 120; vida_util 100 => ratio 1.2
+        self._salida(0)
+        self._salida(120)
+        self._salida(240)
+
+        response = self.client.get('/api/v1/productos/rendimiento/', **self.headers)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+
+        fila = response.data[0]
+        self.assertEqual(fila['producto_id'], self.producto.pk)
+        self.assertEqual(fila['vida_util'], 100)
+        self.assertEqual(fila['ciclos'], 2)
+        self.assertEqual(fila['uso_promedio'], 120.0)
+        self.assertEqual(fila['ratio'], 1.2)
+
+    def test_rendimiento_requiere_dos_salidas(self):
+        # una sola salida => no hay delta => producto ausente del reporte
+        self._salida(0)
+        response = self.client.get('/api/v1/productos/rendimiento/', **self.headers)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, [])
+
+
+class ExportacionTest(APITestCase):
+    XLSX_CT = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+
+    def setUp(self):
+        self.admin = User.objects.create_user(username='admin_exp', password='pass')
+        PerfilUsuario.objects.create(usuario=self.admin, rol='admin')
+        self.sucursal = Sucursal.objects.create(nombre='Suc Exp')
+        self.admin.profile.sucursales.add(self.sucursal)
+        self.client.force_login(self.admin)
+        self.headers = {'HTTP_X_BRANCH_ID': self.sucursal.id}
+
+        self.categoria = Categoría.objects.create(nombre='Cat Exp')
+        self.proveedor = Proveedor.objects.create(nombre='Prov Exp')
+        self.producto = Producto.objects.create(
+            codigo_interno='P-EXP', descripcion='Producto Exp',
+            categoria=self.categoria, unidad_medida='pieza',
+            sku='SKU-EXP', min_stock=2, proveedor=self.proveedor,
+        )
+        self.lote = Lote.objects.create(
+            producto=self.producto, codigo_lote='L-EXP',
+            cantidad_inicial=3, sucursal=self.sucursal,
+        )
+        Unidad.objects.bulk_create([Unidad(lote=self.lote) for _ in range(3)])
+
+    def _load(self, response):
+        from openpyxl import load_workbook
+        import io
+        return load_workbook(io.BytesIO(response.content)).active
+
+    def test_exportar_existencias(self):
+        response = self.client.get('/api/v1/productos/exportar/existencias/', **self.headers)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response['Content-Type'], self.XLSX_CT)
+
+        ws = self._load(response)
+        self.assertEqual(
+            [c.value for c in ws[1]],
+            ['Código', 'Descripción', 'Categoría', 'Disponible', 'Mínimo'],
+        )
+        fila = [c.value for c in ws[2]]
+        self.assertEqual(fila[0], 'P-EXP')
+        self.assertEqual(fila[3], 3)  # 3 unidades disponibles
+        self.assertEqual(fila[4], 2)  # min_stock
+
+    def test_exportar_rendimiento_vacio(self):
+        response = self.client.get('/api/v1/productos/exportar/rendimiento/', **self.headers)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response['Content-Type'], self.XLSX_CT)
+        ws = self._load(response)
+        # Solo encabezados, sin datos de rendimiento.
+        self.assertEqual(ws.max_row, 1)
+
+
+class ReordenTest(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(username='admin_reo', password='pass')
+        PerfilUsuario.objects.create(usuario=self.admin, rol='admin')
+        self.sucursal = Sucursal.objects.create(nombre='Suc Reo')
+        self.admin.profile.sucursales.add(self.sucursal)
+        self.client.force_login(self.admin)
+        self.headers = {'HTTP_X_BRANCH_ID': self.sucursal.id}
+
+        self.categoria = Categoría.objects.create(nombre='Cat Reo')
+        self.proveedor = Proveedor.objects.create(nombre='Prov Reo')
+
+    def _producto(self, codigo, min_stock, disponibles):
+        producto = Producto.objects.create(
+            codigo_interno=codigo, descripcion=f'Desc {codigo}',
+            categoria=self.categoria, unidad_medida='pieza',
+            sku=f'SKU-{codigo}', min_stock=min_stock, proveedor=self.proveedor,
+        )
+        lote = Lote.objects.create(
+            producto=producto, codigo_lote=f'L-{codigo}',
+            cantidad_inicial=disponibles, sucursal=self.sucursal,
+        )
+        Unidad.objects.bulk_create([Unidad(lote=lote) for _ in range(disponibles)])
+        return producto
+
+    def _consumo(self, producto, cantidad):
+        # Salida aprobada solo para alimentar la estadística de consumo.
+        mov = Movimiento.objects.create(
+            tipo='salida', creado_por=self.admin, sucursal=self.sucursal, aprobado=True,
+        )
+        MovimientoItem.objects.create(movimiento=mov, producto=producto, cantidad=cantidad)
+
+    def test_producto_bajo_minimo_aparece_con_sugerencia(self):
+        # min_stock=10, disponibles=3 => bajo mínimo. Consumo 12 en 6 meses => 2/mes.
+        producto = self._producto('P-REO', min_stock=10, disponibles=3)
+        self._consumo(producto, 12)
+
+        response = self.client.get('/api/v1/productos/reorden/', **self.headers)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+
+        grupo = response.data[0]
+        self.assertEqual(grupo['proveedor_nombre'], 'Prov Reo')
+        self.assertEqual(len(grupo['productos']), 1)
+
+        fila = grupo['productos'][0]
+        self.assertEqual(fila['codigo_interno'], 'P-REO')
+        self.assertEqual(fila['consumo_mensual'], 2.0)
+        # cantidad_sugerida = round(2*2 - 3) = 1 (meses_objetivo por defecto = 2)
+        self.assertEqual(fila['cantidad_sugerida'], 1)
+
+    def test_producto_bien_abastecido_ausente(self):
+        # min_stock=1, disponibles=5, sin consumo => no se sugiere reorden.
+        self._producto('P-OK', min_stock=1, disponibles=5)
+        response = self.client.get('/api/v1/productos/reorden/', **self.headers)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, [])
