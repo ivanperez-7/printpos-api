@@ -3,7 +3,6 @@ import re
 from datetime import datetime, timedelta
 
 import pdfplumber
-from rest_framework.serializers import ValidationError
 
 from .gmail.client import GmailApi
 
@@ -78,16 +77,16 @@ class FacturaValidator:
         pdf_data = self._buscar_pdf_por_factura(numero_factura)
 
         if not pdf_data:
-            raise ValidationError(f'No se encontró ningún correo con el número de prefactura {numero_factura}.')
+            raise ValueError(f'No se encontró ningún correo con el número de prefactura {numero_factura}.')
 
         texto = self._extraer_texto_de_pdf(pdf_data)
 
         if not texto:
-            raise ValidationError('No se pudo extraer texto de la prefactura.')
+            raise ValueError('No se pudo extraer texto de la prefactura.')
 
         prefactura = self._extraer_prefactura(texto)
         if prefactura and prefactura != numero_factura:
-            raise ValidationError(
+            raise ValueError(
                 f'Número de prefactura discrepante: PDF={prefactura}, solicitud={numero_factura}.'
             )
 
@@ -103,7 +102,7 @@ class FacturaValidator:
                 )
 
         if errores:
-            raise ValidationError('Información discrepante: ' + '; '.join(errores))
+            raise ValueError('Información discrepante: ' + '; '.join(errores))
 
         return True
 
