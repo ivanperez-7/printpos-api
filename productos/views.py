@@ -96,7 +96,7 @@ class EquipoViewSet(ActivityLogMixin, viewsets.ModelViewSet):
             equipo=equipo,
             cliente__activo=True,
             cliente__sucursal=request.branch_id
-        ).select_related('equipo__marca', 'cliente')
+        ).select_related('equipo__marca', 'cliente', 'equipo')
 
         serializer = EquipoClienteSerializer(qs, many=True)
         return Response(serializer.data)
