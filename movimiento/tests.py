@@ -110,7 +110,7 @@ class MovimientoModelTest(TestCase):
             equipo=equipo, cliente=cliente, alias='EQ1', contador_uso=100
         )
         movimiento = Movimiento.objects.create(tipo='salida', creado_por=self.admin, sucursal_id=1)
-        DetalleSalida.objects.create(movimiento=movimiento, cliente=cliente)
+        DetalleSalida.objects.create(movimiento=movimiento, cliente=cliente, subtipo='venta')
         item = MovimientoItem.objects.create(
             movimiento=movimiento,
             producto=producto,
@@ -125,6 +125,76 @@ class MovimientoModelTest(TestCase):
         self.assertEqual(
             Unidad.objects.filter(lote=lote, status='retirada').count(), 3
         )
+        # Venta no chequea contadores → no se guarda snapshot.
+        item.refresh_from_db()
+        self.assertIsNone(item.contador_uso_snapshot)
+
+    def test_approve_salida_renta_sets_snapshot(self):
+        producto = _create_producto(codigo='P002R')
+        lote = Lote.objects.create(
+            producto=producto, codigo_lote='L-RENTA', cantidad_inicial=10, sucursal_id=1
+        )
+        for _ in range(10):
+            Unidad.objects.create(lote=lote)
+
+        sucursal = Sucursal.objects.create(nombre='Suc Renta')
+        cliente = Cliente.objects.create(nombre='ClienteRenta', sucursal=sucursal)
+        equipo = Equipo.objects.create(nombre='EQ-R', marca=Marca.objects.create(nombre='MR'))
+        equipo_cliente = EquipoCliente.objects.create(
+            equipo=equipo, cliente=cliente, alias='EQR', contador_uso=100
+        )
+        movimiento = Movimiento.objects.create(tipo='salida', creado_por=self.admin, sucursal_id=1)
+        DetalleSalida.objects.create(movimiento=movimiento, cliente=cliente, subtipo='renta')
+        item = MovimientoItem.objects.create(
+            movimiento=movimiento,
+            producto=producto,
+            cantidad=1,
+            lote=lote,
+            equipo_cliente=equipo_cliente,
+        )
+
+        movimiento.approve(self.admin)
+
+        # Renta SÍ chequea contadores y guarda el snapshot del contador_uso.
+        item.refresh_from_db()
+        self.assertEqual(item.contador_uso_snapshot, 100)
+
+    def test_approve_salida_venta_skips_vida_util_check(self):
+        producto = _create_producto(codigo='P002V', vida_util=999)
+        lote = Lote.objects.create(
+            producto=producto, codigo_lote='L-VENTA', cantidad_inicial=10, sucursal_id=1
+        )
+        for _ in range(10):
+            Unidad.objects.create(lote=lote)
+
+        sucursal = Sucursal.objects.create(nombre='Suc Venta')
+        cliente = Cliente.objects.create(nombre='ClienteVenta', sucursal=sucursal)
+        equipo = Equipo.objects.create(nombre='EQ-V', marca=Marca.objects.create(nombre='MV'))
+        equipo_cliente = EquipoCliente.objects.create(
+            equipo=equipo, cliente=cliente, alias='EQV', contador_uso=51
+        )
+        # Entrega previa de renta con snapshot=50: uso=1 < vida_util=999 ⇒ una RENTA
+        # fallaría aquí. Como es venta, no se chequea y aprueba sin error.
+        prev_mov = Movimiento.objects.create(
+            tipo='salida', creado_por=self.admin,
+            creado=timezone.now() - timezone.timedelta(days=30),
+            aprobado=True, sucursal_id=1,
+        )
+        DetalleSalida.objects.create(movimiento=prev_mov, cliente=cliente, subtipo='renta')
+        MovimientoItem.objects.create(
+            movimiento=prev_mov, producto=producto, cantidad=1,
+            lote=lote, equipo_cliente=equipo_cliente, contador_uso_snapshot=50,
+        )
+
+        movimiento = Movimiento.objects.create(tipo='salida', creado_por=self.admin, sucursal_id=1)
+        DetalleSalida.objects.create(movimiento=movimiento, cliente=cliente, subtipo='venta')
+        MovimientoItem.objects.create(
+            movimiento=movimiento, producto=producto, cantidad=1,
+            lote=lote, equipo_cliente=equipo_cliente,
+        )
+
+        movimiento.approve(self.admin)
+        self.assertTrue(movimiento.aprobado)
 
     def test_approve_salida_rejects_insufficient_units(self):
         producto = _create_producto(codigo='P003')
@@ -411,6 +481,62 @@ class MovimientoSerializerTest(APITestCase):
         serializer = MovimientoSerializer(data=data, context={'request': self.request})
         self.assertFalse(serializer.is_valid())
 
+    def test_validate_salida_renta_requires_equipo_cliente(self):
+        lote = Lote.objects.create(
+            producto=self.producto, codigo_lote='L-RENTAV', cantidad_inicial=5, sucursal_id=1
+        )
+        for _ in range(5):
+            Unidad.objects.create(lote=lote)
+        sucursal = Sucursal.objects.create(nombre='Suc RentaV')
+        cliente = Cliente.objects.create(nombre='CRentaV', sucursal=sucursal)
+
+        data = {
+            'tipo': 'salida',
+            'items': [{'producto_id': self.producto.pk, 'cantidad': 1, 'lote_id': lote.pk}],
+            'detalle_salida': {'cliente_id': cliente.pk, 'subtipo': 'renta'},
+        }
+        serializer = MovimientoSerializer(data=data, context={'request': self.request})
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('equipo_cliente', str(serializer.errors))
+
+    def test_validate_salida_venta_rejects_cambio_anticipado(self):
+        lote = Lote.objects.create(
+            producto=self.producto, codigo_lote='L-VENTAV', cantidad_inicial=5, sucursal_id=1
+        )
+        for _ in range(5):
+            Unidad.objects.create(lote=lote)
+        sucursal = Sucursal.objects.create(nombre='Suc VentaV')
+        cliente = Cliente.objects.create(nombre='CVentaV', sucursal=sucursal)
+
+        data = {
+            'tipo': 'salida',
+            'items': [{
+                'producto_id': self.producto.pk, 'cantidad': 1, 'lote_id': lote.pk,
+                'cambio_anticipado': True, 'motivo_cambio': 'x',
+            }],
+            'detalle_salida': {'cliente_id': cliente.pk, 'subtipo': 'venta'},
+        }
+        serializer = MovimientoSerializer(data=data, context={'request': self.request})
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('cambio_anticipado', str(serializer.errors))
+
+    def test_validate_salida_venta_succeeds_without_equipo_cliente(self):
+        lote = Lote.objects.create(
+            producto=self.producto, codigo_lote='L-VENTAOK', cantidad_inicial=5, sucursal_id=1
+        )
+        for _ in range(5):
+            Unidad.objects.create(lote=lote)
+        sucursal = Sucursal.objects.create(nombre='Suc VentaOK')
+        cliente = Cliente.objects.create(nombre='CVentaOK', sucursal=sucursal)
+
+        data = {
+            'tipo': 'salida',
+            'items': [{'producto_id': self.producto.pk, 'cantidad': 1, 'lote_id': lote.pk}],
+            'detalle_salida': {'cliente_id': cliente.pk, 'subtipo': 'venta'},
+        }
+        serializer = MovimientoSerializer(data=data, context={'request': self.request})
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+
     def test_validate_entrada_success(self):
         lote = Lote.objects.create(
             producto=self.producto, codigo_lote='L-SER2', cantidad_inicial=10, sucursal_id=1
@@ -486,7 +612,7 @@ class MovimientoViewSetTest(APITestCase):
                     'lote_id': lote.pk,
                 }
             ],
-            'detalle_salida': {'cliente_id': cliente.pk, 'tecnico': 'Tec'},
+            'detalle_salida': {'cliente_id': cliente.pk, 'tecnico': 'Tec', 'subtipo': 'venta'},
         }
         response = self._post(url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)

@@ -136,12 +136,25 @@ class MovimientoSerializer(WritableNestedModelSerializer):
                 raise serializers.ValidationError('El detalle de salida es requerido para movimientos de tipo salida.')
             data.pop('detalle_entrada', None)
 
+            es_renta = data['detalle_salida'].get('subtipo') == 'renta'
+
             # Chequeo de disponibilidad de unidades para cada item
             for item in data['items']:
                 count = item['lote'].unidades.filter(status='disponible').count()
                 if count < item['cantidad']:
                     raise serializers.ValidationError(
                         f'No hay suficientes unidades disponibles ({count}) en el lote {item["lote"].codigo_lote} para la salida.'
+                    )
+
+                # Renta requiere equipo_cliente; venta lo deja opcional.
+                if es_renta and not item.get('equipo_cliente'):
+                    raise serializers.ValidationError(
+                        'Las salidas de renta requieren equipo_cliente en cada item.'
+                    )
+                # cambio_anticipado solo aplica a renta (chequeo de contadores).
+                if not es_renta and item.get('cambio_anticipado'):
+                    raise serializers.ValidationError(
+                        'cambio_anticipado solo aplica a salidas de renta.'
                     )
 
         data['creado_por'] = self.context['request'].user

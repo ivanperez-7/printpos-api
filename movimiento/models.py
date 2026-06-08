@@ -62,8 +62,10 @@ class Movimiento(models.Model):
             for item in self.items.all():
                 item.crear_lote()
         elif hasattr(self, 'detalle_salida'):
+            es_renta = self.detalle_salida.subtipo == 'renta'
             for item in self.items.all():
-                item.verificar_vida_util()
+                if es_renta:
+                    item.verificar_vida_util()
                 item.asignar_unidades()
         else:
             raise RuntimeError('Movimiento sin detalle asociado.')
@@ -86,11 +88,17 @@ class DetalleEntrada(models.Model):
 
 
 class DetalleSalida(models.Model):
+    SUBTIPOS = [
+        ('venta', 'Venta'),
+        ('renta', 'Renta'),
+    ]
+
     movimiento = models.OneToOneField(
         Movimiento, on_delete=models.CASCADE, related_name='detalle_salida'
     )
     cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT, related_name='salidas_inventario')
     tecnico = models.CharField(max_length=120, blank=True, null=True)
+    subtipo = models.CharField(max_length=10, choices=SUBTIPOS)
 
     class Meta:
         ordering = ['-movimiento__creado']

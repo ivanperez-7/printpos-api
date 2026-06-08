@@ -525,7 +525,7 @@ class CambioAnticipadoTest(APITestCase):
         prior_mov = Movimiento.objects.create(
             tipo='salida', creado_por=self.operativo, sucursal=self.sucursal,
         )
-        DetalleSalida.objects.create(movimiento=prior_mov, cliente=self.cliente, tecnico='Prior')
+        DetalleSalida.objects.create(movimiento=prior_mov, cliente=self.cliente, tecnico='Prior', subtipo='renta')
         MovimientoItem.objects.create(
             movimiento=prior_mov, producto=self.producto, cantidad=1,
             lote=self.lote, equipo_cliente=self.equipo_cliente,
@@ -551,6 +551,7 @@ class CambioAnticipadoTest(APITestCase):
             'detalle_salida': {
                 'cliente_id': self.cliente.pk,
                 'tecnico': 'Test',
+                'subtipo': 'renta',
             },
         }
         return self.client.post(
