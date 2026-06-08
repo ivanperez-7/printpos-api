@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.db.models import F
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -6,6 +7,7 @@ from rest_framework.response import Response
 
 from system.models import RegistroActividad
 from utils.mixins import ActivityLogMixin
+from utils.throttles import SucursalAnonThrottle
 
 from .models import EquipoCliente
 from .serializers import ClienteSerializer, UserSerializer, SucursalSerializer
@@ -174,3 +176,13 @@ class SucursalViewSet(viewsets.ModelViewSet):
     serializer_class = SucursalSerializer
     permission_classes = []
     http_method_names = ['get']
+    throttle_classes = [SucursalAnonThrottle]
+
+    def list(self, request, *args, **kwargs):
+        data = cache.get('sucursales_list')
+        if data is None:
+            queryset = self.filter_queryset(self.get_queryset())
+            serializer = self.get_serializer(queryset, many=True)
+            data = serializer.data
+            cache.set('sucursales_list', data, 600)
+        return Response(data)
