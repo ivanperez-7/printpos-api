@@ -102,8 +102,8 @@ class MovimientoViewSet(ActivityLogMixin, viewsets.ModelViewSet):
         qs = self.filter_queryset(Movimiento.objects.filter(sucursal=request.branch_id)) # branch scope, sin filtrar por fecha
         oldest = qs.order_by('id').first()
         if oldest:
-            return Response({'fecha': oldest.creado.date()})
-        return Response({'fecha': date.today()})
+            return Response(oldest.creado.date())
+        return Response(date.today())
 
     @action(detail=True, methods=['get'])
     def etiquetas(self, request, pk=None):
